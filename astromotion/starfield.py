@@ -64,6 +64,18 @@ class PerspectiveStars:
             x, y, projected, strength = x[selected], y[selected], projected[selected], strength[selected]
         self.count = len(x)
         self.initial_z = rng.uniform(cfg.near, cfg.far, self.count).astype(np.float32)
+        if cfg.depth_mode == "adaptive" and self.count > 1 and cfg.depth_correlation:
+            # Artistic depth cue only: apparent brightness DOES NOT establish
+            # physical stellar distance. Preserve randomness to avoid a flat
+            # near/far split, and keep existing seamless-loop volume behavior.
+            rank = np.empty(self.count, dtype=np.float32)
+            rank[np.argsort(strength, kind="stable")] = (
+                np.arange(self.count, dtype=np.float32) + .5) / self.count
+            # Favor luminous star cores in the foreground; keep a range of Z.
+            target = cfg.near + (cfg.far - cfg.near) * (.08 + .84 * (1.0 - rank))
+            strength_weight = float(cfg.depth_correlation)
+            self.initial_z = ((1.0-strength_weight)*self.initial_z +
+                              strength_weight*target).astype(np.float32)
         # Distribute photo-derived X/Y independently of Z in a genuine volume.
         # Matching every initial pixel would create a widening cone: after the
         # first near stars passed, its narrow front would appear almost empty.
