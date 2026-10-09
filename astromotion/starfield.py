@@ -40,7 +40,10 @@ class PerspectiveStars:
         lum += rng.random(lum.shape, dtype=np.float32) * 1e-9
         maxima = cv2.dilate(lum, np.ones((5, 5), np.uint8))
         neutral = source.min(axis=2) / np.maximum(peak, 1e-6)
-        mask = (lum >= maxima) & (peak > .004) & (neutral > .12)
+        # Very blue/red stars can fail the original RGB-neutrality threshold.
+        # Allow clearly bright, compact chromatic peaks but not dim color noise.
+        mask = (lum >= maxima) & (peak > .004) & (
+            (neutral > .12) | ((peak > .035) & (lum > .012)))
         mask[:3] = mask[-3:] = False
         mask[:, :3] = mask[:, -3:] = False
         y, x = np.nonzero(mask)
