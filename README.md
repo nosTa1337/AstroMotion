@@ -7,7 +7,7 @@ AstroMotion erstellt **Videos mit individuellem Sternflug aus echten Astrofotos*
 ## TL;DR
 
 1. Python 3.11+ (empfohlen: 3.12), FFmpeg/FFprobe und die separat angebotene [StarNet2-CLI](https://starnetastro.com/cli-tools/starnet/) installieren.
-2. Unter Windows `setup_windows.bat` starten. Das installiert **alle Pakete aus requirements.txt, einschließlich tifffile**, in `.venv`.
+2. Unter Windows `setup.bat` starten (`setup_windows.bat` funktioniert ebenfalls). Das installiert **alle Pakete aus requirements.txt, einschließlich tifffile**, in `.venv`.
 3. Mit genau diesem Python starten und bei `--starnet` den **vollständigen Pfad zur EXE**, nicht zum Ordner, angeben:
 
 ```powershell
@@ -20,7 +20,7 @@ Alternativ: `start_windows.bat --input ...` nutzt ebenfalls `.venv`.
 
 ## Saubere Pipeline
 
-Die fehlerhafte `foreground_cleanup`-Umverteilung und nachträgliche Lochreparatur bleiben entfernt. `starfield.py` und `starprofiles.py` sind wieder eingebunden, damit einzelne Sterne sichtbar durch den Raum fliegen. Die bisherigen Sternprofile werden zunächst unverändert verwendet; ihre Farbqualität wird getrennt am kurzen Testvideo beurteilt. Zusätzliche Nahvorbeiflüge sind deaktiviert.
+Erkannte Sterne fliegen mit individueller Tiefe und fotografischen Sternprofilen vor dem ruhig bewegten Nebel. Die Trennung erfolgt ausschließlich mit StarNet2. Die fehlerhafte `foreground_cleanup`-Umverteilung und nachträgliche Lochreparatur sind entfernt; zusätzliche Nahvorbeiflüge bleiben deaktiviert.
 
 - Nur echte StarNet2-Trennung oder ein passendes, bereits mit StarNet2 erzeugtes Starless-Bild; kein OpenCV-Ersatz.
 - Der Sternflug verwendet Positionen und Profile aus dem echten StarNet2-Residuum. Die künstlerische Tiefenverteilung verändert die projizierten Positionen; sie misst keine astronomischen Entfernungen.
@@ -33,13 +33,13 @@ Die fehlerhafte `foreground_cleanup`-Umverteilung und nachträgliche Lochreparat
 
 Die Qualität der ursprünglichen StarNet2-Ausgabe bleibt maßgeblich. Bereits dort vorhandene Halos werden nicht künstlich wegretuschiert. Bei auffälligem Abdriften: `motion.star_zoom_extra` reduzieren, bei Bedarf auf `0` (gleiche Zoombewegung).
 
-**Aktueller Prüfstand:** Der wiederhergestellte Sternflug wurde mit einem echten 2-Sekunden-M45-Video geprüft und vom Projektbetreiber visuell freigegeben. Der vollständige Loop ist im Kurztest entsprechend schneller. Die 30-Sekunden-Demos werden anschließend über GitHub Actions mit derselben Pipeline gerendert; spätere manuelle Prüfungen verwenden standardmäßig wieder den 2-Sekunden-Test.
+**Aktuelle Demos:** Orion und Plejaden wurden mit individuellem Sternflug über [GitHub Actions](https://github.com/nosTa1337/AstroMotion/actions/runs/37927064436) neu gerendert: jeweils 30 Sekunden, 1080 × 1920, 30 FPS, Perfect Loop und zufällige Ambient-Musik. Die Prüfungen für echte StarNet2-Trennung, aktiven Sternflug, Dauer, Auflösung, 900 Frames und vollständige Dekodierung waren erfolgreich. Für weitere Änderungen bleibt der 2-Sekunden-M45-Test der Standard; er komprimiert den gesamten Loop und zeigt deshalb eine schnellere Bewegung.
 
 Details zu Ursache, Git-History und Prüfung: [CLEAN_PIPELINE_REPORT.md](CLEAN_PIPELINE_REPORT.md).
 
 ## Eigene Aufnahmen und Demos
 
-**Seestar S50 Pro + AstroWizard**, eigene Aufnahmen von Philipp / nosTa1337. Die Fotos dürfen verwendet werden; eine Quellenangabe ist willkommen.
+**Seestar S50 Pro + AstroWizard**, eigene Aufnahmen von nosTa1337. Die Fotos dürfen verwendet werden; eine Quellenangabe ist willkommen.
 
 | Orionnebel · M42 | Plejaden · M45 |
 |---|---|
@@ -52,7 +52,7 @@ Details zu Ursache, Git-History und Prüfung: [CLEAN_PIPELINE_REPORT.md](CLEAN_P
 
 ### Windows
 
-Repository klonen oder ZIP vollständig entpacken. Python mit Python Launcher installieren, dann `setup_windows.bat` ausführen. FFmpeg und FFprobe müssen im PATH liegen:
+Repository klonen oder ZIP vollständig entpacken. Python 3.11+ mit Python Launcher oder im PATH installieren, dann `setup.bat` ausführen. Eine vorhandene `.venv` wird wiederverwendet; andernfalls erstellt das Skript sie. Alle Pakete aus `requirements.txt`, einschließlich `tifffile`, werden mit `.venv\Scripts\python.exe` installiert. Derselbe Interpreter wird von `start_windows.bat` zum Starten verwendet. Bei Installations- oder Importfehlern bricht das Setup mit einer verständlichen Meldung ab. FFmpeg und FFprobe müssen im PATH liegen:
 
 ```powershell
 ffmpeg -version
@@ -60,10 +60,24 @@ ffprobe -version
 .\.venv\Scripts\python.exe -m pip check
 ```
 
-Bei `ModuleNotFoundError` immer prüfen, ob du `.venv\Scripts\python.exe` statt einer anderen globalen Python-Installation verwendest. Zum erneuten Installieren:
+Für eine manuelle Installation die Projektumgebung aktivieren und anschließend mit demselben Python installieren und starten:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python main.py --input examples\real\pleiades.jpg --starnet "C:\Program Files\StarNet2\bin\starnet2.exe" --config configs\immersive_loop.yaml --duration 30 --output Plejaden_video.mp4
+```
+
+Bei `ModuleNotFoundError` immer prüfen, ob du den Interpreter der Projektumgebung statt einer anderen globalen Python-Installation verwendest. Ohne Aktivierung, etwa wenn PowerShell sie blockiert, direkt mit dem Projektinterpreter installieren:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+`--starnet` erwartet den **vollständigen Pfad zur ausführbaren Datei**, nicht den Installationsordner. Beispiel unter Windows:
+
+```powershell
+--starnet "C:\Program Files\StarNet2\bin\starnet2.exe"
 ```
 
 Das vollständige StarNet2-Paket mit Bibliotheken und Modellgewichten zusammenlassen. Je nach Paket liegt die EXE direkt im Paketordner oder in `bin`. Für ältere CLI-Pakete mit positional arguments gibt es `--starnet-mode legacy`.
@@ -120,7 +134,7 @@ python scripts/render_starnet_examples.py --starnet /pfad/zu/starnet2 --duration
 
 Standard: 2 Sekunden, 720p, nur Plejaden, Ausgabe unter `test-renders/`. Die bestehende Galerie bleibt unverändert. Nach erfolgreicher Sichtprüfung vollständige Demos explizit mit `--only all --duration 30 --resolution 1080p --output-dir examples/real --overwrite` erzeugen. Optional: `--seed 1234`, `--no-gif`. Vor dem Encoding müssen die Rekonstruktions- und Hintergrundprüfungen bestehen. Diese technischen Checks ersetzen die Sichtprüfung nicht.
 
-Der manuell gestartete [StarNet2-Workflow](.github/workflows/starnet-demos.yml) lädt das offizielle Modell, testet die Pipeline und stellt ausschließlich einen 2-Sekunden-Plejaden-Clip als Artefakt bereit. Er veröffentlicht nichts automatisch in der Galerie. Es gibt keine Ersatz-Sterntrennung.
+Der [StarNet2-Workflow](.github/workflows/starnet-demos.yml) bietet bei manuellen Läufen zwei Modi: `test` (Standard) erzeugt einen 2-Sekunden-M45-Clip als Artefakt; `gallery` rendert beide 30-Sekunden-Demos einschließlich GIFs. Nur Galerie-Läufe auf `fix/restore-starflight` committen nach bestandenen Prüfungen die vier Demo-Dateien in diesen Zweig. Ein Push, der ausschließlich die README oder Medienhinweise ändert, startet keinen neuen Renderjob. Die Workflow-Datei enthält außerdem einen Push-Auslöser für Galerie-Läufe auf diesem Zweig.
 
 ## Tests und Diagnose
 

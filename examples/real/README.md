@@ -1,6 +1,6 @@
 # Eigene Seestar-Aufnahmen und StarNet2-Demos
 
-**Seestar S50 Pro + AstroWizard**, Originalfotos von Philipp / nosTa1337.
+**Seestar S50 Pro + AstroWizard**, Originalfotos von nosTa1337.
 Die JPEG-Aufnahmen sind unverändert und dürfen verwendet werden; eine
 Quellenangabe ist willkommen.
 
@@ -15,7 +15,7 @@ OpenCV-Approximation. Sterne und Nebel bewegen sich unabhängig;
 der Sternflug verwendet fotografische Profile aus dem StarNet2-Residuum. Die Musik wurde
 lokal synthetisiert, GIFs bleiben stumm.
 
-Aktueller Stand: individueller Sternflug mit fotografischen Sternprofilen, ohne Cleanup, Lochfilter oder zusätzliche Farbeffekte. Der 2-Sekunden-M45-Test wurde visuell freigegeben; die vollständigen Demos werden über GitHub Actions erneuert. Sie verwenden protokollierte echte StarNet2-Ausgaben; siehe [Prüfbericht](../../CLEAN_PIPELINE_REPORT.md).
+Die aktuellen Demos wurden im [erfolgreichen Actions-Lauf vom 9. Oktober 2026](https://github.com/nosTa1337/AstroMotion/actions/runs/37927064436) neu gerendert: individueller Sternflug mit fotografischen Sternprofilen, ruhige Hintergrundbewegung, Perfect Loop und zufällige Ambient-Musik. Cleanup, Lochfilter und zusätzliche Farbeffekte bleiben deaktiviert. Echte StarNet2-Trennung, aktiver Sternflug, 30 Sekunden, Auflösung, 900 Frames und vollständige Dekodierung wurden technisch geprüft; siehe [Prüfbericht](../../CLEAN_PIPELINE_REPORT.md).
 
 Mit offizieller StarNet2-CLI und gültiger Lizenz zunächst die Ebenen prüfen:
 
@@ -23,9 +23,13 @@ Mit offizieller StarNet2-CLI und gültiger Lizenz zunächst die Ebenen prüfen:
 python scripts/render_starnet_examples.py --starnet "/pfad/zu/starnet2" --check-only
 ```
 
-Optional `--only pleiades`, `--duration 45`, `--seed 1234`.
-Ohne festen Seed entsteht bei jedem Rendering neue Ambient-Musik.
-Die Original-JPEGs werden nicht überschrieben.
+Standardmäßig wird nur ein 2-Sekunden-M45-Test unter `test-renders/` erzeugt. Für beide vollständigen Demos nach Sichtprüfung:
+
+```bash
+python scripts/render_starnet_examples.py --starnet "/pfad/zu/starnet2" --only all --duration 30 --resolution 1080p --output-dir examples/real --overwrite
+```
+
+Optional `--duration 45` oder `--seed 1234`. Ohne festen Seed entsteht bei jedem Rendering neue Ambient-Musik. Die Original-JPEGs werden nicht überschrieben.
 
 Nach Mitteilung des Projektbetreibers besteht eine separate Freigabe für
 die Demo-Nutzung der StarNet2-basierten Ergebnisse. Die StarNet2-Software
