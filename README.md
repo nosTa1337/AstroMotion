@@ -10,7 +10,8 @@ ein nahtloser Bild-/Musik-Loop. Bestehende Konfigurationen behalten ihre Dauer.
 Sterne und Nebel bewegen sich unabhängig: unterschiedliche Zoomraten, ruhige
 Rotation, sanfter Kameraschwenk, optionale Sternrotation und Funkeln. Keine API,
 keine Cloud, keine Weboberfläche. Nach der Installation funktioniert das Rendering
-offline. Python 3.11+, Windows 11 x64; Pipeline auch unter Linux ausführbar.
+offline. Python 3.11+; Python 3.12 wird für die gepinnten Abhängigkeiten empfohlen.
+Einrichtungsanleitungen für Windows, Linux und macOS stehen unten.
 
 **Im Repository:** vollständiger Python-Quellcode, drei Presets, YAML-/JSON-Beispiele,
 Windows-Startdateien, Tests und ein Generator für ein synthetisches 16-Bit-Testbild
@@ -18,12 +19,21 @@ mit passendem Starless. Große Demo-Bilder und gerenderte Videos werden lokal
 erzeugt und nicht in Git gespeichert. Die Projekt-ZIP enthält zusätzlich das
 synthetische Bildpaar und ein gerendertes Demovideo.
 
-**Testgrenze:** Dieses Paket wurde unter Linux/Python 3.12 getestet. Die echte
+**Testgrenze:** Unter Linux/Python 3.12 bestehen 56 Tests, einschließlich echter
+FFmpeg-Exporte. macOS wurde hier bisher nicht ausgeführt. Die echte
 StarNet2-CLI 2.6.2 wurde inzwischen nach Zustimmung zu ihrer Lizenz lokal ausgeführt,
 einschließlich 2×-Verarbeitung. Windows-Batchdateien und der Windows-Build müssen
 auf deinem Windows-Rechner getestet werden. Details in `TEST_REPORT.md`.
 
-## 1. Windows 11 einrichten
+## 1. Einrichtung
+
+| Plattform | Einstieg |
+|---|---|
+| Windows 11 x64 | [Windows einrichten](#11-windows-11) |
+| Linux | [Linux einrichten](#12-linux-ubuntu--debian) |
+| macOS | [macOS einrichten](#13-macos-intel-und-apple-silicon) |
+
+### 1.1 Windows 11
 
 1. Repository klonen oder über **Code → Download ZIP** herunterladen und vollständig
    entpacken, z. B. nach `C:\AstroMotion`. Nicht direkt im ZIP starten.
@@ -55,6 +65,93 @@ py -3 -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
+### 1.2 Linux (Ubuntu / Debian)
+
+Die folgenden Paketbefehle gelten für Ubuntu/Debian mit Python **3.11 oder neuer**, beispielsweise Ubuntu 24.04 mit Python 3.12. Bei anderen Distributionen die entsprechenden Pakete mit deren Paketmanager installieren: Python mit venv/pip, Git und FFmpeg/FFprobe mit libx264. Für Beschriftungen wird eine TrueType-Schrift benötigt.
+
+Systempakete installieren und die Python-Version prüfen:
+
+```bash
+sudo apt update
+sudo apt install python3 python3-venv python3-pip git ffmpeg fonts-dejavu-core
+python3 --version
+```
+
+Python 3.12 ist der hier getestete Stand. Falls `python3` noch Python 3.10 oder eine neuere, von den gepinnten Wheels nicht unterstützte Version startet, zuerst eine passende Python-Version installieren und die venv ausdrücklich mit `python3.12 -m venv .venv` erstellen.
+
+```bash
+git clone https://github.com/nosTa1337/AstroMotion.git
+cd AstroMotion
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Mit `python` wird jetzt der Interpreter der aktivierten Umgebung verwendet. Die Pakete bleiben in der lokalen venv. Bei `externally-managed-environment` die venv aktivieren und erneut `python -m pip` verwenden.
+
+### 1.3 macOS (Intel und Apple Silicon)
+
+[Homebrew](https://brew.sh/) installieren, falls es noch fehlt, und dessen Einrichtung für PATH abschließen. Anschließend in einem neuen Terminal:
+
+```bash
+brew install python@3.12 ffmpeg git
+python3.12 --version
+git clone https://github.com/nosTa1337/AstroMotion.git
+cd AstroMotion
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Python 3.12 wird ausdrücklich ausgewählt, damit ein Homebrew-Update des Standardbefehls `python3` nicht versehentlich eine andere Python-Version für die venv verwendet. Die festen Paketversionen benötigen passende Wheels für deine macOS-Version und CPU.
+
+Auf **Apple Silicon** (M-Serie) eine native ARM64-Python-/Homebrew-Installation verwenden; auf **Intel-Macs** die x86-64-Komponenten. Architektur prüfen:
+
+```bash
+uname -m
+python -c "import platform; print(platform.machine())"
+```
+
+Bei nativer Ausführung sollten beide Ausgaben dieselbe Architektur zeigen: `arm64` auf Apple Silicon bzw. `x86_64` auf Intel. Für StarNet ebenfalls das passende native Paket wählen.
+
+Die Windows-Dateien `setup_windows.bat`, `start_windows.bat` und `render_demo_windows.bat` werden unter Linux und macOS durch die Terminalbefehle in dieser Anleitung ersetzt. macOS wurde hier bisher nicht ausgeführt.
+
+Für automatische Texteinblendungen und die Caption-Tests kann optional DejaVu Sans installiert werden. Pillow sucht unter macOS auch im lokalen Fontordner:
+
+```bash
+brew install --cask font-dejavu-sans
+python -c "from PIL import ImageFont; ImageFont.truetype('DejaVuSans.ttf', 24); print('Schrift OK')"
+```
+
+Alternativ für eigene Exporte `caption.font` setzen, siehe Abschnitt 3.
+
+### 1.4 Installation prüfen und später erneut starten
+
+Unter Linux/macOS aus dem Projektordner mit aktivierter venv:
+
+```bash
+python --version
+python -c "import cv2, numpy, PIL, yaml, tifffile; print('Python-Pakete OK')"
+ffmpeg -version
+ffprobe -version
+ffmpeg -hide_banner -encoders 2>/dev/null | grep libx264
+python main.py --help
+python main.py --config configs/immersive_loop.yaml --print-config
+```
+
+Die Encoderliste muss `libx264` enthalten. FFmpeg und FFprobe müssen in PATH liegen oder mit absoluten Pfaden unter `encoding.ffmpeg` / `encoding.ffprobe` in der Konfiguration stehen.
+
+Nach dem Schließen des Terminals die Umgebung erneut aktivieren:
+
+```bash
+cd /pfad/zu/AstroMotion
+source .venv/bin/activate
+```
+
+Alternativ ohne Aktivierung direkt `.venv/bin/python main.py ...` verwenden. `deactivate` verlässt die venv. Für ein Update `git pull` und danach `python -m pip install -r requirements.txt` in der aktivierten Umgebung ausführen.
+
 ## 2. Erste Demo ohne StarNet
 
 `render_demo_windows.bat` starten. Sie erzeugt das synthetische Bildpaar und rendert
@@ -71,22 +168,24 @@ Das Demo-Starless ist die bekannte Nebelebene der synthetischen Aufnahme. Es
 simuliert **keine** Sternentrennung; dieses Paar prüft den kompletten Ablauf ab
 Ebenenextraktion unabhängig von StarNet.
 
-### Schnellstart unter Linux / macOS
+### Demo unter Linux / macOS
 
-Python 3.11+ sowie FFmpeg mit `libx264` und FFprobe müssen installiert sein.
+Nach der Einrichtung aus Abschnitt 1 aus dem Projektordner mit aktivierter venv:
 
 ```bash
-git clone https://github.com/nosTa1337/AstroMotion.git
-cd AstroMotion
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
 python scripts/create_demo.py
-python main.py --input examples/deep_sky.png --starless examples/deep_sky_starless.png --config configs/immersive_loop.yaml --resolution 720p --duration 30 --output examples/demo_loop.mp4
+python main.py \
+  --input examples/deep_sky.png \
+  --starless examples/deep_sky_starless.png \
+  --config configs/immersive_loop.yaml \
+  --resolution 720p \
+  --duration 30 \
+  --output examples/demo_loop.mp4
 ```
 
-Mit `--duration 45` lässt sich beispielsweise ein 45-Sekunden-Loop erzeugen.
-Die Pipeline wurde unter Linux geprüft; macOS wurde bisher nicht getestet.
+Dies erzeugt einen 30-Sekunden-Loop mit Ambient-Musik. Mit `--duration 45` lässt sich ein 45-Sekunden-Loop erzeugen; mit `--no-loop` die normale Kamerafahrt. Für einen erneuten Export auf denselben Dateinamen `--overwrite` ergänzen.
+
+Unter macOS mit `open examples/demo_loop.mp4` ansehen; auf einem Linux-Desktop mit `xdg-open examples/demo_loop.mp4` oder in einem Videoplayer öffnen.
 
 ## 3. Eigene Seestar-Aufnahmen
 
@@ -138,6 +237,51 @@ ab. Es gibt keinen heuristischen Ersatz. StarNet-Ergebnis im `<video>_assets`
 Ordner prüfen; bei Reststernen/Artefakten ein saubereres Starless verwenden.
 Das Programm kann vorhandene Löcher oder falsch entfernte Nebeldetails nicht
 zuverlässig reparieren. Siehe `THIRD_PARTY_NOTICES.md` für Lizenzgrenzen.
+
+### Eigene Aufnahmen unter Linux / macOS
+
+Die Optionen sind dieselben wie unter Windows. Pfade verwenden `/`; Leerzeichen in Datei- und Ordnernamen mit Anführungszeichen schützen. Beispiel mit vorhandenem Starless, 45 Sekunden und eigener Musik:
+
+```bash
+python main.py \
+  --input "$HOME/Pictures/Astro/Orion.tif" \
+  --starless "$HOME/Pictures/Astro/Orion_starless.tif" \
+  --config configs/immersive_loop.yaml \
+  --duration 45 \
+  --audio "$HOME/Music/ambient.wav" \
+  --output "$HOME/Pictures/Astro/Orion_loop.mp4"
+```
+
+Ohne eigene Musik die Zeile `--audio ...` weglassen: Das Loop-Profil erzeugt Ambient-Musik lokal. Für Ausgabe ohne Musik `--music none` setzen.
+
+**StarNet optional:** Auf der [offiziellen Downloadseite](https://starnetastro.com/cli-tools/starnet/) das zur CPU passende CLI-Paket wählen und dessen Systemanforderungen beachten. Den vollständigen Paketordner mit Bibliotheken und Modellen zusammen lassen. Für die Demo oder fertige Starless-Bilder wird StarNet nicht benötigt.
+
+Beispiel für ein entpacktes aktuelles Paket im Ordner `$HOME/Tools/StarNet2`:
+
+```bash
+chmod +x "$HOME/Tools/StarNet2/starnet2"
+python main.py \
+  --input "$HOME/Pictures/Astro/Orion.tif" \
+  --starnet "$HOME/Tools/StarNet2/starnet2" \
+  --starnet-mode modern \
+  --config configs/immersive_loop.yaml \
+  --duration 30 \
+  --output "$HOME/Pictures/Astro/Orion_loop.mp4"
+```
+
+Pfad und Programmname müssen zum heruntergeladenen Paket passen. Beim aktuellen nativen Installer liegt das Programm unter Linux typischerweise in `/usr/bin/starnet2`, unter macOS in `/usr/local/bin/starnet2`. Diese absoluten Pfade können stattdessen an `--starnet` übergeben werden. AstroMotion erwartet hier einen Dateipfad, keinen bloßen Befehlsnamen aus PATH. Aktuelle `starnet2`-Pakete nutzen `modern`, ältere `starnet++`-Pakete `legacy`.
+
+**Texteinblendungen auf dem Mac:** Die automatische Fontsuche enthält bisher Windows-/DejaVu-Pfade. Wenn kein skalierbarer Font gefunden wird, in einer Kopie des gewünschten YAML-Profils eine vorhandene TTF/OTF-Datei angeben. Beispiel, falls diese Arial-Datei auf deinem Mac existiert:
+
+```yaml
+caption:
+  enabled: true
+  title: Orionnebel
+  subtitle: MESSIER 42
+  font: /System/Library/Fonts/Supplemental/Arial.ttf
+```
+
+Das Profil mit `--config` laden. Alternativ einen eigenen Fontpfad eintragen; die Existenz z. B. mit `ls "/pfad/zur/Schrift.ttf"` prüfen. Unter Linux deckt `fonts-dejavu-core` normalerweise die automatische Suche ab.
 
 ## 4. Bedienung und Presets
 
@@ -438,10 +582,21 @@ Keine UI-Logik in den Bildmodulen.
 
 ## 7. Tests, Protokolle und Fehlersuche
 
+**Windows:**
+
 ```bat
 .venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .venv\Scripts\python.exe -m pytest -q
 ```
+
+**Linux / macOS** (aktivierte venv):
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+Die Tests umfassen Texteinblendungen mit der automatischen Fontsuche. Fehlt auf dem Mac DejaVu Sans, muss die DejaVu-Schrift für diese Tests verfügbar sein; `caption.font` steuert nur deine Render-Konfiguration und ändert die Testfixtures nicht.
 
 Testabdeckung: Präzision/Dateiformate, Rekonstruktion, Parallax, extreme
 Crop-/Rotationsgeometrie, Konfigurationspriorität, bounded Effekte,
@@ -459,6 +614,16 @@ nach sRGB-Decodierung, keine direkt addierbare Bildschirmmaske.
 - **StarNet startet nicht:** EXE, vollständige DLL-/Modellinstallation,
   CLI-Modus und `starnet.log` prüfen. Anbieter-Dokumentation beachten.
 - **FFmpeg fehlt / libx264 unbekannt:** richtigen Build/PATH oder absolute Pfade setzen.
+- **Linux: venv fehlt:** `python3-venv` für den verwendeten Interpreter installieren;
+  bei mehreren Python-Versionen ggf. das passende `python3.12-venv`-Paket verwenden.
+- **Kein passendes Wheel:** Python-Version, CPU-Architektur und Betriebssystemversion
+  prüfen; Python 3.12 in einer neuen venv verwenden.
+- **Linux/macOS: Permission denied bei StarNet:** Ausführungsrecht der entpackten
+  Programmdatei prüfen (`chmod +x /pfad/zu/starnet2`); Modell-/lib-Dateien zusammen lassen.
+- **macOS blockiert StarNet:** Offiziellen nativen Installer und Anbieteranleitung
+  für die verwendete macOS-Version nutzen; alternativ ein fertiges Starless verwenden.
+- **macOS: Kein skalierbarer Schriftfont:** `caption.font` auf eine vorhandene TTF/OTF
+  setzen, siehe Abschnitt zu eigenen Aufnahmen unter Linux/macOS.
 - **Starless passt nicht:** gleiche Ausgangsbearbeitung und Geometrie verwenden.
 - **Halos, Löcher oder doppelte Sterne:** Starless manuell ansehen; Parallax reduzieren,
   besseres Sternenentfernungs-Ergebnis verwenden. Quellartefakte werden nicht erfunden repariert.
@@ -475,5 +640,14 @@ https://starnetastro.com/documentation/starnet/command-line-tool/
 
 Installation und Paketstruktur:
 https://starnetastro.com/documentation/cli-installers/
+
+Plattform-Einrichtung und Paketinformationen:
+
+- [Homebrew](https://brew.sh/)
+- [Homebrew Python 3.12](https://formulae.brew.sh/formula/python@3.12)
+- [Homebrew FFmpeg](https://formulae.brew.sh/formula/ffmpeg)
+- [Homebrew DejaVu Sans](https://formulae.brew.sh/cask/font-dejavu-sans)
+- [OpenCV-Headless 4.12.0.88: Plattform-Wheels](https://pypi.org/project/opencv-python-headless/4.12.0.88/)
+- [StarNet: native Installer und Paketstruktur](https://starnetastro.com/documentation/cli-installers/)
 
 AstroMotion: MIT. Externe Komponenten: `THIRD_PARTY_NOTICES.md`.
