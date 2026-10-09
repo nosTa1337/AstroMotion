@@ -17,6 +17,7 @@ from .config import Config
 from .effects import EffectProcessor
 from .encoding import VideoEncoder, resolve_binary
 from .imaging import load_image, resize_work, save_png, to_srgb
+from .intelligence import resolve_cinematic
 from .music import resolve_audio_seed, synthesize_ambient
 from .looping import camera_phase, prepare_audio_loop
 from .separation import extract_layers, run_starnet
@@ -65,6 +66,12 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
         original_shape = original_full.shape
         original = resize_work(original_full, cfg.work_long_edge)
         del original_full
+        effective_motion, effective_effects, cinematic_metrics = resolve_cinematic(
+            original, cfg.motion, cfg.effects, cfg.cinematic)
+        if cinematic_metrics:
+            LOG.info("Cinematic intelligence: focus=(%.3f, %.3f) contrast=%.3f saturation=%.3f",
+                     effective_motion.center_x, effective_motion.center_y,
+                     effective_effects.contrast, effective_effects.saturation)
         if starless_path:
             raw_starless = load_image(starless_path.resolve(), cfg.max_input_pixels)
             if raw_starless.shape != original_shape:
@@ -88,8 +95,8 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
             audio_path = workspace / "ambient.wav"
             LOG.info("Synthetisiere originale Ambient-Musik (Seed %d).", cfg.audio.seed)
             synthesize_ambient(audio_path, cfg.actual_duration, cfg.audio)
-        animator = Animator(layers, cfg.size, cfg.motion)
-        processor = EffectProcessor(cfg.effects, cfg.size, layers.blend)
+        animator = Animator(layers, cfg.size, effective_motion)
+        processor = EffectProcessor(effective_effects, cfg.size, layers.blend)
         particles = PerspectiveStars(layers, animator, cfg.starfield, cfg.fps, cfg.loop) if cfg.starfield.enabled else None
         caption = CaptionOverlay(cfg.caption, cfg.size) if cfg.caption.enabled else None
         if animator.base_scale > 1:
@@ -124,6 +131,7 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
                   "output": str(output), "config": asdict(cfg), "diagnostics": layers.diagnostics,
                   "base_scale": animator.base_scale, "actual_duration": cfg.actual_duration,
                   "elapsed_seconds": time.monotonic() - start, "probe": encoder.info,
+                  "cinematic_intelligence": cinematic_metrics,
                   "layer_encoding": "sRGB PNG; decode sRGB to linear then use separation.blend"}
         if particles:
             report["starfield"] = particles.stats
