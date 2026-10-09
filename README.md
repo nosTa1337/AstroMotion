@@ -16,9 +16,16 @@ bereits vorhandenes **Starless-Bild**. StarNet2 wird aus Lizenzgründen nicht
 mitgeliefert; Nutzer installieren es selbst und akzeptieren dessen Bedingungen.
 Ein OpenCV-Demomodus ohne StarNet existiert nur als eingeschränkte Alternative.
 
-**Keine Cloud, keine API, keine GitHub Actions:** AstroMotion läuft mit Python
-3.11+ (empfohlen 3.12), OpenCV, NumPy und lokal installiertem FFmpeg
-unter Windows, Linux und macOS. Alle Renderings erfolgen lokal.
+**Keine Cloud, keine API und kein Rendern über GitHub Actions:** AstroMotion
+läuft mit Python 3.11+ (empfohlen 3.12), OpenCV, NumPy und lokal
+installiertem FFmpeg unter Windows, Linux und macOS.
+**GitHub Actions prüft ausschließlich den Code** (Syntax, Konfiguration,
+Unit-Tests). Tests, die Videos erzeugen, sind mit `video_render`
+markiert und werden in der CI ausdrücklich ausgelassen. GIFs und MP4s
+werden weder erstellt noch ersetzt oder hochgeladen. Alle Renderings
+erfolgen weiterhin lokal.
+
+[![Code-Tests (ohne Videorendering)](https://github.com/nosTa1337/AstroMotion/actions/workflows/code-checks.yml/badge.svg)](https://github.com/nosTa1337/AstroMotion/actions/workflows/code-checks.yml)
 
 ## TL;DR – schnell zum ersten Video
 
@@ -138,6 +145,8 @@ umstellen. Anschließend werden die Dateien mit gewöhnlichem
 Bereits erzeugte Videodateien können genauso in `examples/real/`
 kopiert und anschließend mit dem Publish-Skript eingebunden werden.
 Die StarNet-Ausgaben sind derzeit noch **nicht** in GitHub eingecheckt.
+**Die vorhandenen GIFs und MP4s bleiben unverändert**; dieser lokale
+Publish-Schritt ist optional und wird nicht von GitHub Actions ausgeführt.
 
 **Lizenzhinweis:** Die StarNet2-Lizenz erlaubt die Veröffentlichung eigener
 Astrofotos und Bearbeitungsergebnisse, enthält aber besondere Beschränkungen
