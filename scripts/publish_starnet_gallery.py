@@ -96,18 +96,18 @@ Die offizielle [StarNet2-CLI](https://starnetastro.com/cli-tools/starnet/)
 separat installieren, Lizenz lesen und akzeptieren. Es werden keine Modelle
 oder StarNet-Programme im Repository mitgeliefert.
 
-\`\`\`bash
+```bash
 python scripts/render_starnet_examples.py --starnet "/path/to/starnet2" --overwrite
-\`\`\`
+```
 
 Aus bereits vorhandenen passenden Starless-Bildern:
 
-\`\`\`bash
+```bash
 python scripts/render_starnet_examples.py --starless-dir "/path/to/starless" --overwrite
-\`\`\`
+```
 
 Um fertige, bereits gerenderte MP4s/GIFs in die Galerie zu übernehmen,
-kann man lokal \`python scripts/publish_starnet_gallery.py\` verwenden.
+kann man lokal `python scripts/publish_starnet_gallery.py` verwenden.
 GitHub Actions wird **nicht** zum Rendern verwendet; der einmalige
 Import der hier gezeigten Medien war ausschließlich eine Dateikopie.
 
