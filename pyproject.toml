@@ -19,5 +19,6 @@ include = ["astromotion*"]
 astromotion = "astromotion.cli:main"
 
 [tool.pytest.ini_options]
+markers = ["video_render: integration test that produces an MP4 or other rendered video; excluded from GitHub Actions"]
 testpaths = ["tests"]
 pythonpath = ["."]
