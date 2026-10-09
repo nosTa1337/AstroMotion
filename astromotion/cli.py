@@ -30,6 +30,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--music", choices=("none", "ambient"))
     parser.add_argument("--audio", type=Path, help="Eigene MP3-/WAV-Datei (hat Vorrang vor --music)")
     parser.add_argument("--seed", type=int, help="Musik reproduzieren; ohne festen Seed zufällige Variante")
+    parser.add_argument("--auto-focus", action=argparse.BooleanOptionalAction, default=None,
+                        help="Bildinhalt erkennt automatisch einen sicheren Kamerafokus")
+    parser.add_argument("--auto-color", action=argparse.BooleanOptionalAction, default=None,
+                        help="Dezente, bildabhängige Kontrast-/Sättigungsanpassung")
+    parser.add_argument("--depth-mode", choices=("random", "adaptive"),
+                        help="Künstlerische Sterntiefen: random oder adaptive")
+    parser.add_argument("--preview", action="store_true",
+                        help="Schnelle 3s-Vorschau mit 720p/24fps und eigenem Dateinamen")
     parser.add_argument("--parallax", type=float)
     parser.add_argument("--speed", type=float)
     parser.add_argument("--title", help="Dezenter Objektname; aktiviert die Beschriftung")
@@ -44,6 +52,17 @@ def main(argv: list[str] | None = None) -> int:
                  if getattr(args, k) is not None}
     if args.loop is not None:
         overrides["loop"] = {"enabled": args.loop}
+    if args.preview:
+        overrides.update({"duration": 3.0, "resolution": "720p", "fps": 24})
+    cinematic = {}
+    if args.auto_focus is not None:
+        cinematic["auto_focus"] = args.auto_focus
+    if args.auto_color is not None:
+        cinematic["auto_color"] = args.auto_color
+    if cinematic:
+        overrides["cinematic"] = cinematic
+    if args.depth_mode is not None:
+        overrides["starfield"] = {"depth_mode": args.depth_mode}
     for group, values in {
         "separation": {"executable": args.starnet, "mode": args.starnet_mode},
         "motion": {"parallax": args.parallax, "speed": args.speed},
@@ -69,7 +88,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if not args.input:
             parser.error("--input wird benötigt (außer bei --print-config).")
-        output = args.output or args.input.with_name(args.input.stem + "_astromotion.mp4")
+        suffix = "_preview.mp4" if args.preview else "_astromotion.mp4"
+        output = args.output or args.input.with_name(args.input.stem + suffix)
         last = [0.0]
 
         def progress(done: int, total: int, elapsed: float) -> None:
