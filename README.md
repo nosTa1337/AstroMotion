@@ -132,4 +132,4 @@ Die Fehleranalyse und frühere Prüfungen stehen im [Pipeline-Bericht](CLEAN_PIP
 
 ## Lizenzen
 
-AstroMotion: [MIT](LICENSE). Externe Komponenten: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). StarNet2 und Modellgewichte werden separat bezogen und lizenziert. Für die enthaltenen StarNet2-Demos liegt nach Mitteilung des Projektbetreibers eine separate Freigabe vor. Die Ambient-Musik wird lokal synthetisiert, ohne Samples fremder Aufnahmen.
+AstroMotion: [MIT](LICENSE). Externe Komponenten: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). StarNet2 und Modellgewichte werden separat bezogen und lizenziert. Die Ambient-Musik wird lokal synthetisiert, ohne Samples fremder Aufnahmen.
