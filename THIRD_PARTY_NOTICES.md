@@ -6,7 +6,7 @@ Stand: 09.10.2026. Die Versionsangaben beziehen sich auf `requirements.txt` und 
 
 Der eigene AstroMotion-Quellcode steht unter [MIT](LICENSE). Bei Weitergabe des Codes sind der Copyright-Hinweis und der vollständige Lizenztext beizubehalten. Die MIT-Lizenz von AstroMotion erteilt keine zusätzlichen Rechte an externen Komponenten oder deinen Eingabedateien.
 
-Dieses Repository enthält keine gebündelten Python-Wheels, keine FFmpeg-/StarNet-Programme und keine StarNet-Modellgewichte. Abhängigkeiten werden separat installiert. Neben dem synthetischen Testbildgenerator enthält es eigene, zur Verwendung freigegebene Aufnahmen und daraus erzeugte 2D-Demovideos; siehe [Medienhinweise](examples/real/README.md).
+Dieses Repository enthält keine gebündelten Python-Wheels, keine FFmpeg-/StarNet-Programme und keine StarNet-Modellgewichte. Abhängigkeiten werden separat installiert. Neben dem synthetischen Testbildgenerator enthält es eigene, zur Verwendung freigegebene Aufnahmen und daraus erzeugte Demovideos (historische 2D-Version im Repository, neue Demo-Engine mit approximierter Sternbewegung); siehe [Medienhinweise](examples/real/README.md).
 
 ## Python-Pakete
 
