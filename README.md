@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/astromotion-logo.png" alt="AstroMotion-Logo" width="280" />
+</p>
+
 # AstroMotion
 
 Lokale CLI für Cinematic-Deep-Sky-Videos aus **einem fertigen Astrofoto**.
