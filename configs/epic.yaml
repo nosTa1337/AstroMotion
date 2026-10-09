@@ -1,0 +1,9 @@
+# Minimal config: all other values come from the Epic preset.
+preset: epic
+format: vertical
+resolution: 1080p
+duration: 20.0
+fps: 30
+audio:
+  mode: ambient
+  seed: 42

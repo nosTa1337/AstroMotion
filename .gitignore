@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.egg-info/
+*_assets/
+*.partial.mp4
+
+# Reproducible demo inputs and generated exports
+/examples/*.png
+/examples/*.jpg
+/examples/*.tif
+/examples/*.mp4

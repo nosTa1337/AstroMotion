@@ -1,0 +1,8 @@
+preset: calm
+format: landscape
+resolution: 1080p
+duration: 30.0
+fps: 30
+audio:
+  mode: ambient
+  seed: 2026

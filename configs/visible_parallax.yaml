@@ -1,0 +1,28 @@
+# Deutlich sichtbare Sternbewegung, ruhiger Nebel. Für echte Fotos StarNet oder
+# ein passendes --starless verwenden. Keine Änderung der Bildfarben erforderlich.
+preset: cinematic
+format: vertical
+resolution: 720p
+duration: 12.0
+fps: 30
+motion:
+  zoom: 0.045
+  rotation_deg: 1.2
+  pan_x: 0.05
+  pan_y: -0.028
+  parallax: 1.8
+  star_zoom_extra: 0.11
+  star_rotation_deg: 0.8
+  speed: 1.2
+  overscan: 1.015
+effects:
+  bloom: 0.08
+  glow: 0.02
+  vignette: 0.08
+  contrast: 1.0
+  saturation: 1.0
+  grade: 0.0
+  twinkle: 0.0
+audio:
+  mode: ambient
+  seed: 42

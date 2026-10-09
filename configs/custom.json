@@ -1,0 +1,10 @@
+{
+  "preset": "cinematic",
+  "format": "square",
+  "resolution": "720p",
+  "duration": 20.0,
+  "fps": 24,
+  "motion": {"parallax": 0.8, "speed": 0.7},
+  "effects": {"bloom": 0.06, "vignette": 0.08},
+  "audio": {"mode": "ambient", "seed": 42}
+}

@@ -1,0 +1,89 @@
+# AstroMotion: Werte hier überschreiben Preset-Defaults; CLI hat letzte Priorität.
+# Entferne eine Sektion, wenn du die Werte des gewählten Presets nutzen möchtest.
+preset: cinematic
+format: vertical
+resolution: 1080p
+duration: 30.0
+fps: 30
+work_long_edge: 3200
+max_input_pixels: 120000000
+save_layers: true
+
+loop:
+  enabled: false # CLI: --loop / --no-loop
+  star_cycles: 1 # ganzzahlig; mehr Durchläufe = schnellerer Flug
+  audio_crossfade_seconds: 4.0 # auf höchstens 1/3 der Dauer begrenzt
+
+separation:
+  # Alle Paketdateien/DLLs/Weights zusammen lassen. Oder --starless verwenden.
+  executable: null # 'C:\Tools\StarNet2\starnet2.exe'
+  mode: auto # starnet2.exe: modern; starnet++.exe: legacy
+  stride: 256
+  timeout: 3600.0
+  extra_args: [] # moderne CLI optional: ['--upsample']
+  blend: screen
+  max_negative_error: 0.035
+  foreground_cleanup: false # Starflight: farbige Nebelreste im Hintergrund halten
+
+motion:
+  zoom: 0.065
+  rotation_deg: 1.8
+  pan_x: 0.018
+  pan_y: -0.012
+  parallax: 1.0
+  star_zoom_extra: 0.045
+  star_rotation_deg: 0.5
+  speed: 1.0
+  overscan: 1.015
+  center_x: 0.5
+  center_y: 0.5
+
+effects:
+  bloom: 0.09
+  glow: 0.025
+  bloom_radius: 7.0
+  glow_radius: 24.0
+  vignette: 0.12
+  contrast: 1.015
+  saturation: 1.035
+  grade: 0.025
+  twinkle: 0.0
+
+# Für einen vollständigen Flug mit ruhigem Nebel: configs/immersive.yaml nutzen.
+starfield:
+  enabled: false
+  count: 4500
+  seed: 2026
+  near: 0.16
+  far: 3.8
+  travel: 2.4
+  drift_x: 0.12
+  drift_y: -0.035
+  rotation_deg: 4.0
+  farfield_gain: 0.18
+  foreground_gain: 1.0
+  max_radius: 12.0
+  shutter: 0.6
+  photo_profiles: false # true: kleine echte Sternprofile statt Gaußpunkte
+  close_passes: 0 # 0..20 einzelne Sterne am Bildrand hervorheben
+  close_scale: 1.6
+  close_blur: 2.4 # nur bei ausgewählten nahen Sternen, Pixel bei 1080 kurzer Kante
+
+audio:
+  mode: none
+  file: null
+  seed: 42
+  gain: 0.7
+  fade_seconds: 2.0
+  sample_rate: 48000
+  harmony: original # original, floating, dusk: verwandte Space-Ambient-Akkorde
+  transpose: 0 # -12..12 Halbtöne
+  accents: 0.0 # 0..1: leise Glocken und hohe Klangflächen
+
+encoding:
+  ffmpeg: ffmpeg # alternativ 'C:\Tools\ffmpeg\bin\ffmpeg.exe'
+  ffprobe: ffprobe
+  crf: 18
+  preset: medium
+  threads: 4
+  verify: true

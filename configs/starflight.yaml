@@ -1,0 +1,31 @@
+# Flug durchs echte, mit StarNet getrennte Sternenfeld.
+# Der Nebel bleibt statisch; nur die Sternenebene kommt näher und rotiert.
+preset: cinematic
+format: vertical
+resolution: 1080p
+duration: 10.0
+fps: 30
+motion:
+  zoom: 0.0
+  rotation_deg: 0.0
+  pan_x: 0.0
+  pan_y: 0.0
+  parallax: 3.0
+  star_zoom_extra: 0.5
+  star_rotation_deg: 1.5
+  speed: 1.0
+  overscan: 1.015
+effects:
+  bloom: 0.06
+  glow: 0.015
+  vignette: 0.06
+  contrast: 1.0
+  saturation: 1.0
+  grade: 0.0
+  twinkle: 0.0
+audio:
+  mode: ambient
+  seed: 42
+separation:
+  extra_args: ['--upsample']
+  foreground_cleanup: true
