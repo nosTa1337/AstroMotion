@@ -1,57 +1,59 @@
 <p align="center"><img src="assets/astromotion-logo.png" alt="AstroMotion" width="320"></p>
 
+**English** · [Deutsch](README.de.md)
+
 # AstroMotion
 
-**Aus deinem Astrofoto wird ein ruhiger Flug durch die Sterne.** StarNet2 trennt Sterne und Nebel. Sterne aus der Aufnahme bewegen sich mit individueller Tiefe vor dem sanft bewegten Hintergrund. Das empfohlene Setup erzeugt ein **30-Sekunden-Video mit Perfect Loop und zufälliger Ambient-Musik**. Bewegung, Format, Länge und Musik lassen sich konfigurieren.
+**Turn your astrophotograph into a calm flight through the stars.** StarNet2 separates stars from nebulosity. Stars from the photo move at individual depths in front of a gently moving background. The recommended setup creates a **30-second video with a seamless loop and randomly generated ambient music**. Motion, format, duration and music are configurable.
 
-## TL;DR – unter Windows starten
+## TL;DR – get started on Windows
 
-1. **Python 3.11+** (empfohlen: 3.12), **FFmpeg mit FFprobe** und die offizielle [StarNet2-CLI](https://starnetastro.com/cli-tools/starnet/) installieren. FFmpeg und FFprobe müssen im PATH liegen.
-2. Repository klonen oder vollständig entpacken und **`setup.bat`** starten. Es erstellt oder verwendet `.venv` und installiert alle Pakete.
-3. Im Repository-Ordner ausführen:
+1. Install **Python 3.11+** (recommended: 3.12), **FFmpeg with FFprobe**, and the official [StarNet2 CLI](https://starnetastro.com/cli-tools/starnet/). FFmpeg and FFprobe must be on your PATH.
+2. Clone the repository or extract it completely, then run **`setup.bat`**. It creates or reuses `.venv` and installs all dependencies.
+3. Run this command from the repository folder:
 
 ```powershell
-.\.venv\Scripts\python.exe main.py --input examples\real\pleiades.jpg --starnet "C:\Program Files\StarNet2\bin\starnet2.exe" --config configs\immersive_loop.yaml --output Plejaden_video.mp4
+.\.venv\Scripts\python.exe main.py --input examples\real\pleiades.jpg --starnet "C:\Program Files\StarNet2\bin\starnet2.exe" --config configs\immersive_loop.yaml --output Pleiades_video.mp4
 ```
 
-Für dein eigenes Foto den Pfad hinter `--input` ersetzen.
+Replace the path after `--input` with your own photo.
 
-## Geführter Start ohne lange Befehle
+## Guided launcher
 
-Unter Windows **`start_wizard.bat`** doppelklicken oder ein Bild darauf ziehen. Alternativ:
+On Windows, double-click **`start_wizard.bat`** or drag a photo onto it. Alternatively:
 
 ```powershell
 .\.venv\Scripts\python.exe wizard.py
 ```
 
-Beim ersten Start fragt das Skript nach der **StarNet2-EXE**, dem **Bilderordner**, dem **Videoordner** und **FFmpeg/FFprobe**. Danach reicht der Bildname aus dem gespeicherten Ordner oder ein vollständiger Bildpfad.
+On the first run, the wizard asks for the **StarNet2 executable**, **photo folder**, **video folder**, and **FFmpeg/FFprobe**. After that, you can enter just a filename from the saved photo folder or a full image path. Wizard prompts are currently in German.
 
-Pro Video wählst du Länge, FPS, Auflösung, Format, Perfect Loop, Titel, Untertitel und Musik. **Enter übernimmt die Vorgabe**; die Videoeinstellungen werden für den nächsten Start gespeichert. Titel und Untertitel bleiben an das jeweilige Bild gebunden und werden jedes Mal neu abgefragt. `-` leert ein optionales Feld. Ambient-Musik bleibt mit `zufall` bei jedem Render neu.
+For each video, choose duration, FPS, resolution, format, seamless loop, title, subtitle and music. **Press Enter to accept a default**; video preferences are saved for the next run. Titles and subtitles are entered separately for each photo. `-` clears an optional field. Use `zufall` (random) to generate fresh ambient music for each render.
 
-Ein optionales Menü bietet Hintergrundzoom, Drehung, seitliche Sternbewegung, Sternanzahl, Helligkeit, Loop-Tempo, Lautstärke und Textgröße. Vor dem Rendern zeigt das Skript die Auswahl und fragt nach dem Start. Vorhandene Videos werden nur nach ausdrücklicher Bestätigung ersetzt.
+An optional menu controls background zoom, rotation, lateral star motion, star count, brightness, loop pace, volume and text size. Before rendering, the wizard shows your choices and asks whether to start. Replacing an existing video requires explicit confirmation.
 
-Pfade neu einrichten: `start_wizard.bat --setup`. Einstellungen prüfen, ohne ein Video zu rendern: `start_wizard.bat --dry-run`. Linux/macOS: `python wizard.py` in der aktivierten Projektumgebung.
+Update saved paths: `start_wizard.bat --setup`. Check settings without rendering: `start_wizard.bat --dry-run`. On Linux/macOS, run `python wizard.py` with the project environment activated.
 
-Die lokalen Einstellungen liegen in `.astromotion-wizard.json` und werden von Git ignoriert. Das Skript nutzt dieselbe StarNet2-Pipeline und denselben Python-Interpreter wie der Startbefehl.
+Local settings are stored in `.astromotion-wizard.json`, which Git ignores. The wizard uses the same StarNet2 pipeline and Python interpreter as the command-line launcher.
 
 ## Demos
 
-**Seestar S50 Pro + AstroWizard**, eigene Aufnahmen von mir. Die enthaltenen Fotos und Demo-Medien dürfen verwendet werden.
+My own photos, captured with **Seestar S50 Pro** and processed with **AstroWizard**. You may use the included photos and demo media.
 
-| Orionnebel · M42 | Plejaden · M45 |
+| Orion Nebula · M42 | Pleiades · M45 |
 |---|---|
-| [![Orion](examples/real/orion_starnet_preview.gif)](examples/real/orion_starnet_demo.mp4) | [![Plejaden](examples/real/pleiades_starnet_preview.gif)](examples/real/pleiades_starnet_demo.mp4) |
-| [Originalfoto](examples/real/orion.jpg) · [Video mit Musik](examples/real/orion_starnet_demo.mp4) | [Originalfoto](examples/real/pleiades.jpg) · [Video mit Musik](examples/real/pleiades_starnet_demo.mp4) |
+| [![Orion](examples/real/orion_starnet_preview.gif)](examples/real/orion_starnet_demo.mp4) | [![Pleiades](examples/real/pleiades_starnet_preview.gif)](examples/real/pleiades_starnet_demo.mp4) |
+| [Original photo](examples/real/orion.jpg) · [Video with music](examples/real/orion_starnet_demo.mp4) | [Original photo](examples/real/pleiades.jpg) · [Video with music](examples/real/pleiades_starnet_demo.mp4) |
 
-Jeweils 30 Sekunden, 1080 × 1920, 30 FPS, H.264/AAC. Die GIFs sind stumme Vorschauen mit reduzierter Farbpalette; für Bildqualität und Musik die MP4s öffnen.
+Each video is 30 seconds, 1080 × 1920, 30 FPS, H.264/AAC. GIFs are silent previews with a reduced color palette; open the MP4s to assess image quality and hear the music.
 
-## Einrichtung
+## Installation
 
 ### Windows
 
-`setup.bat` verwendet denselben Interpreter wie `start_windows.bat`: **`.venv\Scripts\python.exe`**. Eine vorhandene Projektumgebung wird wiederverwendet. Das Setup installiert `requirements.txt`, prüft die Paketimporte und bricht bei Fehlern mit einer verständlichen Meldung ab. `setup_windows.bat` bleibt als alternativer Dateiname verfügbar.
+`setup.bat` uses the same interpreter as `start_windows.bat`: **`.venv\Scripts\python.exe`**. It reuses an existing project environment, installs `requirements.txt`, checks package imports, and stops with a clear message if something fails. `setup_windows.bat` remains available as an alternative entry point.
 
-Manuell installieren: Bei vorhandener `.venv` die erste Zeile auslassen.
+For manual installation, skip the first line if `.venv` already exists:
 
 ```powershell
 py -3 -m venv .venv
@@ -59,7 +61,7 @@ py -3 -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-Falls PowerShell die Aktivierung blockiert, direkt mit dem Projektinterpreter installieren und auch AstroMotion damit starten:
+If PowerShell blocks activation, install directly with the project interpreter and use that interpreter to launch AstroMotion as well:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
@@ -67,97 +69,97 @@ Falls PowerShell die Aktivierung blockiert, direkt mit dem Projektinterpreter in
 
 ### Linux / macOS
 
-Python 3.11+, `venv`, FFmpeg/FFprobe und das passende offizielle StarNet2-CLI-Paket installieren.
+Install Python 3.11+, `venv`, FFmpeg/FFprobe, and the official StarNet2 CLI package for your platform.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python main.py --input examples/real/pleiades.jpg --starnet "/pfad/zu/starnet2" --config configs/immersive_loop.yaml --output Plejaden_video.mp4
+python main.py --input examples/real/pleiades.jpg --starnet "/path/to/starnet2" --config configs/immersive_loop.yaml --output Pleiades_video.mp4
 ```
 
-Falls nötig, die StarNet2-Datei mit `chmod +x /pfad/zu/starnet2` ausführbar machen.
+If necessary, make the StarNet2 executable runnable with `chmod +x /path/to/starnet2`.
 
-## Dein Video anpassen
+## Customize your video
 
-Verwende **[`configs/immersive_loop.yaml`](configs/immersive_loop.yaml)** als Ausgangspunkt. Dieses Setup entspricht dem Haupteffekt der Demos: individueller Sternflug, ruhiger Hintergrund und Loop, ohne zusätzliche Bildeffekte.
+Start with **[`configs/immersive_loop.yaml`](configs/immersive_loop.yaml)**. This setup provides the main effect shown in the demos: individual star flight, calm background movement and a seamless loop, without additional visual effects.
 
-Die folgenden Optionen an den Startbefehl anhängen:
+Append these options to your launch command:
 
-| Wunsch | Option |
+| Goal | Option |
 |---|---|
-| Längeres, langsameres Loop-Video | `--duration 45` |
-| Querformat / quadratisch | `--format landscape` / `--format square` |
-| Auflösung | `--resolution 720p`, `1080p` oder `4k` |
-| Bildrate | `--fps 24`, `30` oder `60` |
-| Dieselbe Musikvariante wiederholen | `--seed 1234` |
-| Eigene Musik / stumm | `--audio "musik.wav"` / `--music none` |
-| Objektname einblenden | `--title "Plejaden"` |
-| Zweite Textzeile ergänzen | `--subtitle "MESSIER 45"` |
-| Loop ausschalten | `--no-loop` |
-| Bestehende Ausgabedatei ersetzen | `--overwrite` |
+| Longer, slower loop video | `--duration 45` |
+| Landscape / square format | `--format landscape` / `--format square` |
+| Resolution | `--resolution 720p`, `1080p` or `4k` |
+| Frame rate | `--fps 24`, `30` or `60` |
+| Repeat the same music variation | `--seed 1234` |
+| Your own music / no audio | `--audio "music.wav"` / `--music none` |
+| Display an object name | `--title "Pleiades"` |
+| Add a second line of text | `--subtitle "MESSIER 45"` |
+| Disable looping | `--no-loop` |
+| Replace an existing output file | `--overwrite` |
 
-**Optionale Texteinblendung:** `--title` aktiviert die Beschriftung, `--subtitle` ergänzt eine zweite Zeile. Zum Beispiel an den Startbefehl anhängen:
-
-```powershell
---title "Plejaden" --subtitle "MESSIER 45"
-```
-
-Ohne diese Optionen bleibt die Texteinblendung im empfohlenen Setup deaktiviert.
-
-**Tempo im Loop:** Bei gleicher Konfiguration verteilt sich die Bewegung auf die Videolänge. 45 Sekunden wirken langsamer als 30 Sekunden; ein 2-Sekunden-Test komprimiert den gesamten Flug. `--speed` steuert die Hintergrundbewegung und ist kein allgemeiner Tempo-Regler für den Sternflug.
-
-Für eigene Bewegungseinstellungen eine Kopie anlegen:
+**Optional text overlay:** `--title` enables the caption; `--subtitle` adds a second line. For example, append:
 
 ```powershell
-Copy-Item configs\immersive_loop.yaml meine_config.yaml
+--title "Pleiades" --subtitle "MESSIER 45"
 ```
 
-Die Werte in `meine_config.yaml` bearbeiten und im Startbefehl **`--config meine_config.yaml`** verwenden:
+Without these options, text overlays remain disabled in the recommended setup.
 
-| Einstellung | Wert im empfohlenen Setup | Wirkung |
+**Loop pace:** With the same settings, movement is spread over the video duration. A 45-second loop feels slower than a 30-second loop; a 2-second test compresses the entire flight. `--speed` controls background movement, not the overall pace of individual star flight.
+
+To customize motion, make a copy:
+
+```powershell
+Copy-Item configs\immersive_loop.yaml my_config.yaml
+```
+
+Edit the values in `my_config.yaml`, then launch with **`--config my_config.yaml`**:
+
+| Setting | Recommended setup | Behavior |
 |---|---|---|
-| `motion.zoom` | `0.14` | Hintergrundzoom um bis zu 14 %; kleiner = ruhiger, `0` = kein Zoom |
-| `motion.rotation_deg` | `2.0` | Drehbereich des Hintergrunds in Grad; `0` = keine Drehung |
-| `starfield.drift_x` / `drift_y` | `0.12` / `-0.035` | Seitliche Bewegung des Sternflugs; kleinere Beträge = weniger Drift |
-| `starfield.rotation_deg` | `4.75` | Drehbereich des Sternflugs in Grad; `0` = keine Drehung |
-| `starfield.count` | `4500` | Obergrenze der animierten, tatsächlich erkannten Sterne |
-| `starfield.foreground_gain` | `1.15` | Helligkeit der fliegenden Sterne |
-| `starfield.seed` | `2026` | Wiederholbare künstlerische Tiefenverteilung der Sterne |
-| `audio.gain` | `0.7` | Lautstärke |
-| `audio.seed` | `null` | Neue Ambient-Musik pro Rendering; eine Ganzzahl wiederholt die Variante |
+| `motion.zoom` | `0.14` | Background zoom up to 14%; lower = calmer, `0` = no zoom |
+| `motion.rotation_deg` | `2.0` | Background rotation range in degrees; `0` = no rotation |
+| `starfield.drift_x` / `drift_y` | `0.12` / `-0.035` | Lateral star movement; smaller magnitudes = less drift |
+| `starfield.rotation_deg` | `4.75` | Star-flight rotation range in degrees; `0` = no rotation |
+| `starfield.count` | `4500` | Maximum number of animated stars actually detected in the photo |
+| `starfield.foreground_gain` | `1.15` | Brightness of the flying stars |
+| `starfield.seed` | `2026` | Reproducible artistic depth distribution |
+| `audio.gain` | `0.7` | Audio volume |
+| `audio.seed` | `null` | Fresh ambient music per render; an integer repeats a variation |
 
-Der Sternflug verwendet künstlerisch zugewiesene Tiefen, keine gemessenen astronomischen Entfernungen. Im Perfect Loop fliegen die Sterne vorwärts, während der Hintergrund sanft vor und zurück fährt. Die Musik wird am Übergang überblendet. Im Abschnitt `loop` lässt sich zusätzlich `star_cycles: 1` setzen: `2` bedeutet zwei vollständige Sterndurchläufe pro Video und damit mehr Tempo. Für einen ruhigen Flug bei `1` bleiben. `starfield.travel` beeinflusst den Flug nur bei ausgeschaltetem Loop.
+Star depths are assigned artistically, not measured astronomical distances. In a seamless loop, stars fly forward while the background moves gently in and out. Music is crossfaded at the seam. You can also set `star_cycles: 1` in the `loop` section: `2` gives two complete star traversals per video, increasing the pace. Keep it at `1` for a calm flight. `starfield.travel` affects star movement only when looping is disabled.
 
-CLI-Optionen überschreiben die Konfigurationsdatei. Relative Dateipfade innerhalb einer Konfiguration beziehen sich auf deren Ordner. `--print-config` zeigt die effektiven Einstellungen, ohne zu rendern.
+CLI options override the configuration file. Relative file paths inside a configuration are resolved from that file's folder. `--print-config` shows the effective settings without rendering.
 
-## Fotos und Sterntrennung
+## Photos and star separation
 
-Als Eingabe ein fertig gestrecktes RGB-Astrofoto verwenden, etwa JPG, PNG oder TIFF. AstroMotion nutzt ausschließlich **echte StarNet2-Trennung**. Ein bereits mit StarNet2 erzeugtes Starless-Bild kann die erneute Trennung ersetzen:
+Use a finished, stretched RGB astrophotograph, such as JPG, PNG or TIFF. AstroMotion uses only **genuine StarNet2 separation**. If you already have a matching StarNet2 starless image, you can reuse it:
 
 ```powershell
-.\.venv\Scripts\python.exe main.py --input foto.tif --starless foto_starless.tif --config configs\immersive_loop.yaml --output video.mp4
+.\.venv\Scripts\python.exe main.py --input photo.tif --starless photo_starless.tif --config configs\immersive_loop.yaml --output video.mp4
 ```
 
-Original und Starless müssen dieselbe Größe und Ausrichtung haben und aus derselben Bearbeitung stammen. Die Qualität der StarNet2-Ausgabe bleibt maßgeblich. Die Trennung verwendet keine nachträglichen Lochreparaturen oder Umverteilung von Sternfarben in den Nebel.
+The original and starless images must have identical dimensions and orientation and come from the same processing state. Output quality depends on the StarNet2 result. Separation does not apply subsequent hole-repair filters or redistribute star colors into the nebula.
 
-## Fehler und Entwicklung
+## Troubleshooting and development
 
-- **`ModuleNotFoundError`, etwa für `tifffile`:** `setup.bat` erneut ausführen und mit `.venv\Scripts\python.exe` starten.
-- **FFmpeg fehlt:** `ffmpeg -version` und `ffprobe -version` prüfen; beide Programme müssen erreichbar sein.
-- **StarNet2 startet nicht:** EXE-Pfad und Vollständigkeit des StarNet2-Pakets prüfen. Ältere CLI-Pakete mit Positionsargumenten unterstützen `--starnet-mode legacy`.
+- **`ModuleNotFoundError`, for example for `tifffile`:** Run `setup.bat` again and launch with `.venv\Scripts\python.exe`.
+- **FFmpeg is missing:** Check `ffmpeg -version` and `ffprobe -version`; both must be accessible.
+- **StarNet2 does not start:** Check the executable path and that the StarNet2 package is complete. Older CLI packages using positional arguments are supported through `--starnet-mode legacy`.
 
-Protokolle, Ebenenbilder und Renderbericht liegen neben dem Video unter `<video>_assets/`.
+Logs, layer images and the render report are saved alongside the video under `<video>_assets/`.
 
-Für die Entwicklung zunächst den kleinen [StarNet2-Demotest](examples/real/README.md) verwenden. Der [Actions-Workflow](.github/workflows/starnet-demos.yml) startet manuell standardmäßig einen 2-Sekunden-M45-Test; vollständige Demos werden ausdrücklich über `gallery` gewählt. Tests ohne Videorendering:
+For development, start with the small [StarNet2 demo test](examples/real/README.md) (German instructions). Manual runs of the [Actions workflow](.github/workflows/starnet-demos.yml) default to a 2-second M45 test; choose `gallery` explicitly for full demos. Run tests without video rendering:
 
 ```bash
 python -m pip install -r requirements-dev.txt
 python -m pytest -q -m "not video_render"
 ```
 
-Die Fehleranalyse und frühere Prüfungen stehen im [Pipeline-Bericht](CLEAN_PIPELINE_REPORT.md).
+The earlier issue analysis and checks are documented in the [pipeline report](CLEAN_PIPELINE_REPORT.md) (German).
 
-## Lizenzen
+## Licenses
 
-AstroMotion: [MIT](LICENSE). Externe Komponenten: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). StarNet2 und Modellgewichte werden separat bezogen und lizenziert. Die Ambient-Musik wird lokal synthetisiert, ohne Samples fremder Aufnahmen.
+AstroMotion: [MIT](LICENSE). External components: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (German). StarNet2 and model weights are obtained and licensed separately. Ambient music is synthesized locally, without samples from other recordings.
