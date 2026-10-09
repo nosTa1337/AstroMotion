@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: official-starnet2-gallery
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   starnet2-gallery:
@@ -28,11 +28,16 @@ jobs:
           python-version: '3.12'
           cache: pip
 
-      - name: Install FFmpeg and Python dependencies
+      - name: Verify FFmpeg and install Python dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
           python -m pip install -r requirements-dev.txt
+          python - <<'PY'
+          from PIL import ImageFont
+          ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 14)
+          print('DejaVu font available')
+          PY
 
       - name: Validate Python before touching existing media
         run: |
