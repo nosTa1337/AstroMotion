@@ -19,6 +19,6 @@ python scripts/render_photo_demo.py --overwrite
 python scripts/render_photo_demo.py --only orion --overwrite
 ```
 
-Musik variiert zufällig bei jedem Lauf. Mit `--seed ZAHL` lässt sich eine Variante erneut erzeugen. Die aktuell versionierten MP4/GIF-Dateien wurden mit den angegebenen Seeds erstellt; nach erneutem Rendern werden neue Seeds in den lokalen Render-Berichten festgehalten. Die Render-Berichte und WAVs entstehen lokal in den ignorierten `*_assets`-Ordnern. Einstellungen: [photo_demo.yaml](../../configs/photo_demo.yaml).
+Musik variiert zufällig bei jedem Lauf. Mit `--seed ZAHL` lässt sich eine Variante erneut erzeugen. Jeder neue Export erzeugt seine eigene Ambient-Variante; für eine wiederholbare Variante `--seed ZAHL` verwenden. Die Seeds stehen in den lokal erstellten Render-Berichten. Die Render-Berichte und WAVs entstehen lokal in den ignorierten `*_assets`-Ordnern. Einstellungen: [photo_demo.yaml](../../configs/photo_demo.yaml).
 
 Mit dem Demo-Render-Skript werden die GIFs automatisch zusammen mit den MP4s neu erzeugt (8 FPS, 280 Pixel Breite, ohne Ton). Die GIF-Vorschauen enthalten denselben vollständigen 30-Sekunden-Bildzyklus in kleiner Auflösung ohne Ton. In der Haupt-README sind sie mit den MP4s verlinkt. Große neue Videos besser außerhalb der Git-Historie hosten, etwa in GitHub Releases oder bei YouTube/Vimeo.

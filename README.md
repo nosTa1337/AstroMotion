@@ -85,7 +85,7 @@ python main.py --input examples/deep_sky.png --starless examples/deep_sky_starle
 
 Jeweils **30 Sekunden · 720 × 1280 · 30 FPS · H.264/AAC**, ruhige Bildanimation und lokal erzeugte Ambient-Musik. Die kleinen GIFs spielen direkt in der README ohne Ton; ein Klick führt zum vollständigen MP4 mit Ton. YouTube ist dafür nicht erforderlich. Für längere oder größere Videos sind YouTube/Vimeo oder GitHub Releases Alternativen; hier liegen die kurzen Beispiele direkt im Repository.
 
-**Wichtig:** Die bereits hochgeladenen MP4s und GIFs zeigen derzeit noch die ältere 2D-Version. Der aktualisierte Demo-Renderer in `scripts/render_photo_demo.py` bewegt zusätzlich erkannte Sterne unabhängig im Raum und erzeugt beide GIFs neu. Diese OpenCV-Sternabschätzung ist nur eine Demo-Näherung (kein StarNet, keine wissenschaftliche Sternentfernung). Um die Medien zu aktualisieren, das Skript lokal ausführen und anschließend die neu erzeugten MP4/GIF-Dateien committen. Für hochwertige Aufnahmen das Hauptprogramm mit einer echten Starless-Datei verwenden.
+**In den aktuellen Demos bewegen sich aus den Fotos erkannte Sterne unabhängig vom Nebel im Raum.** Die OpenCV-Sternabschätzung ist eine künstlerische Näherung für öffentliche Demos (kein StarNet, keine wissenschaftliche Sternentfernung). Das Demo-Skript aktualisiert beim Rendern MP4s und GIF-Vorschauen. Für hochwertige Aufnahmen das Hauptprogramm mit einer echten Starless-Datei verwenden.
 
 Neu rendern (aktivierte Python-Umgebung, funktioniert auch unter Windows):
 
