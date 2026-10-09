@@ -11,6 +11,7 @@ import numpy as np
 
 from .config import Separation
 from .imaging import FloatImage, load_image, save_tiff, to_linear
+from .starless_repair import repair_bright_star_holes
 
 LOG = logging.getLogger(__name__)
 
@@ -46,6 +47,11 @@ def extract_layers(original: FloatImage, starless: FloatImage, cfg: Separation) 
     if negative > .001:
         LOG.warning("Starless liegt lokal über dem Original (mittlere Differenz %.5f). "
                     "Diese Werte werden für eine rekonstruierbare Ebene begrenzt; Ebenen visuell prüfen.", negative)
+    repaired_holes = 0
+    if cfg.foreground_cleanup:
+        starless, repaired_holes = repair_bright_star_holes(original, starless)
+        if repaired_holes:
+            LOG.info("Reparierte farbige Sternloch-Artefakte: %d", repaired_holes)
     orig = to_linear(original)
     base = np.minimum(to_linear(starless), orig)
     difference = np.maximum(orig - base, 0)
@@ -62,9 +68,14 @@ def extract_layers(original: FloatImage, starless: FloatImage, cfg: Separation) 
         # in the distant, stationary background.
         peak = stars.max(axis=2)
         neutral = stars.min(axis=2) / np.maximum(peak, 1e-6)
-        seeds = np.clip((neutral - .12) / .25, 0, 1) * np.clip((peak - .0015) / .005, 0, 1)
-        expanded = cv2.dilate(seeds.astype(np.float32), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
-        confidence = np.maximum(seeds, cv2.GaussianBlur(expanded, (0, 0), .65))
+        # Blue/red stars can have a very low minimum RGB channel even though
+        # their compact stellar cores are real. Rescue strong chromatic cores,
+        # while keeping faint diffuse color leftovers in the background.
+        neutral_core = np.clip((neutral - .12) / .25, 0, 1)
+        colorful_core = .85 * np.clip((peak - .035) / .12, 0, 1)
+        seeds = np.maximum(neutral_core, colorful_core) * np.clip((peak - .0015) / .005, 0, 1)
+        expanded = cv2.dilate(seeds.astype(np.float32), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
+        confidence = np.maximum(seeds, cv2.GaussianBlur(expanded, (0, 0), .8))
         stars = stars * np.clip(confidence, 0, 1)[..., None]
         if cfg.blend == "screen":
             base = np.clip((orig - stars) / np.maximum(1 - stars, 1e-6), 0, 1)
@@ -75,6 +86,7 @@ def extract_layers(original: FloatImage, starless: FloatImage, cfg: Separation) 
     layers.diagnostics["positive_residual_energy_fraction"] = float(difference.sum() / max(float(orig.sum()), 1e-6))
     if cfg.foreground_cleanup:
         layers.diagnostics["foreground_cleanup_enabled"] = 1.0
+        layers.diagnostics["bright_star_holes_repaired"] = float(repaired_holes)
     LOG.info("Ebenen rekonstruiert: max. linearer Fehler %.8f", layers.diagnostics["reconstruction_max_error_linear"])
     return layers
 
