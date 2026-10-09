@@ -1,0 +1,113 @@
+name: Render genuine StarNet2 demo gallery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/starnet-demos.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: official-starnet2-gallery
+  cancel-in-progress: false
+
+jobs:
+  starnet2-gallery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install FFmpeg and Python dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install -r requirements-dev.txt
+
+      - name: Validate Python before touching existing media
+        run: |
+          python -m compileall -q astromotion scripts tests
+          python -m pytest -q -m "not video_render"
+
+      - name: Install verified official StarNet2 CLI
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, stat, urllib.request, zipfile
+          from pathlib import Path
+          with urllib.request.urlopen('https://starnetastro.com/cli-tools/latest.json', timeout=40) as resp:
+              info=json.load(resp)['tools']['starnet2']['latest']['linux-x64']
+          assert info['version']=='2.6.2', 'StarNet2 version changed: review new terms'
+          package=info['packages']['archive']
+          assert package['url'].startswith('https://download.starnetastro.com/'), 'Not official StarNet2 download'
+          target=Path(os.environ['RUNNER_TEMP'])
+          archive=target/'official-starnet2.zip'
+          digest=hashlib.sha256()
+          with urllib.request.urlopen(package['url'], timeout=100) as src, archive.open('wb') as dst:
+              while chunk:=src.read(2*1024*1024):
+                  digest.update(chunk)
+                  dst.write(chunk)
+          assert digest.hexdigest()==package['sha256'], 'StarNet2 download checksum mismatch'
+          assert archive.stat().st_size==package['size_bytes'], 'StarNet2 download size mismatch'
+          with zipfile.ZipFile(archive) as z:
+              licenses=[name for name in z.namelist() if name.endswith('/LICENSE.txt') and 'starnet2' in name.lower()]
+              assert len(licenses)==1, 'StarNet2 license not found'
+              assert 'Revision: 2026-09-07' in z.read(licenses[0]).decode('utf-8','replace'), 'License revision changed'
+              assert all(not p.startswith('/') and '..' not in Path(p).parts for p in z.namelist()), 'Unsafe archive paths'
+              z.extractall(target/'starnet')
+          exes=[p for p in (target/'starnet').rglob('starnet2') if p.is_file()]
+          assert len(exes)==1, 'StarNet2 CLI executable missing'
+          exe=exes[0]
+          exe.chmod(exe.stat().st_mode|stat.S_IXUSR)
+          with open(os.environ['GITHUB_ENV'],'a') as env:
+              env.write('STARNET_EXE='+str(exe.resolve())+'\n')
+          print('Official StarNet2', info['version'], info['build'], 'verified')
+          PY
+
+      - name: Render two real StarNet2 videos with new ambient music and GIFs
+        run: |
+          python -u scripts/render_starnet_examples.py --starnet "$STARNET_EXE" --duration 30 --resolution 1080p --overwrite
+
+      - name: Verify StarNet provenance, MP4 audio and GIF files
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          for stem in ('orion','pleiades'):
+              folder=Path('examples/real')
+              movie=folder/(stem+'_starnet_demo.mp4')
+              gif=folder/(stem+'_starnet_preview.gif')
+              assert movie.stat().st_size>100000 and gif.stat().st_size>100000
+              probed=json.loads(subprocess.check_output(
+                  ['ffprobe','-v','error','-show_format','-show_streams','-of','json',str(movie)]))
+              assert 29.95<float(probed['format']['duration'])<30.2
+              assert {'h264','aac'}<={track.get('codec_name') for track in probed['streams']}
+              vid=next(s for s in probed['streams'] if s.get('codec_name')=='h264')
+              assert (vid['width'],vid['height'])==(1080,1920)
+              report=json.loads((folder/(movie.stem+'_assets')/'render_report.json').read_text())
+              assert report['starless']=='StarNet', 'Did not use StarNet2'
+              assert report['starfield']['detected_star_particles']>=10
+              assert report['diagnostics']['reconstruction_max_error_linear']<.001
+              print(stem, 'verified StarNet2', movie.stat().st_size, 'bytes')
+          PY
+
+      - name: Publish only verified StarNet2 demo media to main
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add examples/real/orion_starnet_demo.mp4 examples/real/orion_starnet_preview.gif
+          git add examples/real/pleiades_starnet_demo.mp4 examples/real/pleiades_starnet_preview.gif
+          if ! git diff --cached --quiet; then
+            git commit -m "Refresh real StarNet2 1080p demo videos and GIFs"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
