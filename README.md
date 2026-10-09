@@ -87,6 +87,14 @@ Jeweils **30 Sekunden · 720 × 1280 · 30 FPS · H.264/AAC**, ruhige Bildanimat
 
 **In den aktuellen Demos bewegen sich aus den Fotos erkannte Sterne unabhängig vom Nebel im Raum.** Die OpenCV-Sternabschätzung ist eine künstlerische Näherung für öffentliche Demos (kein StarNet, keine wissenschaftliche Sternentfernung). Das Demo-Skript aktualisiert beim Rendern MP4s und GIF-Vorschauen. Für hochwertige Aufnahmen das Hauptprogramm mit einer echten Starless-Datei verwenden.
 
+### Persönliche StarNet-Renderings (getrennt von der öffentlichen Demo)
+
+Für die zwei eigenen Seestar-Fotos gibt es einen separaten Workflow: [**Personal StarNet videos and GIFs**](https://github.com/nosTa1337/AstroMotion/actions/workflows/personal-starnet-render.yml). Er verarbeitet die Originalfotos mit der **offiziellen StarNet2-CLI**, rendert **30 Sekunden in 1080 × 1920 bei 30 FPS** mit eigenständigem perspektivischem Sternflug, dezentem Objekttext, einer jeweils zufälligen Ambient-Musikvariante und erzeugt passende tonlose GIFs. Die Aufnahmen stammen vom **Seestar S50 Pro** und wurden in **AstroWizard** bearbeitet.
+
+Über **Run workflow** lässt sich ein privater Foto-Export anstoßen. Zuvor die vollständige Lizenz der verwendeten StarNet-Version lesen und die Zustimmung im Workflow ausdrücklich bestätigen. Der Workflow prüft Version, SHA-256 und Lizenzrevision und lädt die CLI ausschließlich von der offiziellen Quelle. Die erzeugten Dateien stehen nach erfolgreichem Abschluss unter **Artifacts** des jeweiligen GitHub-Actions-Laufs für 30 Tage zum Herunterladen bereit. Im Repository werden weder StarNet-Programmdateien oder Modelle noch die StarNet-erzeugten Bilder/Videos eingecheckt.
+
+**Warum sind die StarNet-Videos nicht direkt in der README eingebettet?** Abschnitt 5 der aktuellen StarNet2-Lizenz untersagt die Verwendung der Ausgaben als Assets zur Entwicklung, Erprobung oder Verbesserung anderer Softwareprodukte. Für öffentlich im README eingebettete **AstroMotion-Produktdemos** bleiben deshalb die oben gezeigten, ohne StarNet erzeugten GIFs und Videos vorgesehen. Die getrennten StarNet-Exporte sind für deine persönliche Astrofotografie gedacht. [Lizenzdetails](THIRD_PARTY_NOTICES.md).
+
 Neu rendern (aktivierte Python-Umgebung, funktioniert auch unter Windows):
 
 ```bash
