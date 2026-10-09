@@ -1,0 +1,103 @@
+name: Personal StarNet videos and GIFs
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/personal-starnet-render.yml
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        stem: [orion, pleiades]
+    env:
+      STEM: ${{ matrix.stem }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install Python and FFmpeg runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          python -m pip install -r requirements.txt
+      - name: Download official StarNet CLI (version and license locked)
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, stat, urllib.request, zipfile
+          from pathlib import Path
+          feed=json.load(urllib.request.urlopen('https://starnetastro.com/cli-tools/latest.json',timeout=40))
+          item=feed['tools']['starnet2']['latest']['linux-x64']
+          assert item['version']=='2.6.2', 'License/version review needed'
+          info=item['packages']['archive']
+          assert info['url'].startswith('https://download.starnetastro.com/')
+          target=Path(os.environ['RUNNER_TEMP'])
+          archive=target/'starnet2.zip'
+          digest=hashlib.sha256()
+          with urllib.request.urlopen(info['url'],timeout=100) as r, archive.open('wb') as f:
+              while chunk:=r.read(2*1024*1024):
+                  digest.update(chunk);f.write(chunk)
+          assert digest.hexdigest()==info['sha256'] and archive.stat().st_size==info['size_bytes'], 'Download checksum mismatch'
+          with zipfile.ZipFile(archive) as z:
+              licenses=[p for p in z.namelist() if p.endswith('/LICENSE.txt') and 'starnet2' in p.lower()]
+              assert len(licenses)==1 and 'Revision: 2026-09-07' in z.read(licenses[0]).decode('utf-8','replace'),'Terms changed: stop and review'
+              assert all(not p.startswith('/') and '..' not in Path(p).parts for p in z.namelist())
+              z.extractall(target/'starnet')
+          exes=[p for p in (target/'starnet').rglob('starnet2') if p.is_file()]
+          assert len(exes)==1, 'CLI executable missing'
+          exe=exes[0]
+          exe.chmod(exe.stat().st_mode|stat.S_IXUSR)
+          with open(os.environ['GITHUB_ENV'],'a') as e:e.write('STARNET_EXE='+str(exe.resolve())+'\n')
+          print('Verified official StarNet2',item['version'],item['build'],'licensed separately; temporary binary only.')
+          PY
+      - name: Render 30-second 1080p StarNet starflight
+        run: |
+          mkdir -p personal
+          if [ "$STEM" = "orion" ]; then
+            TITLE="Orionnebel"; SUBTITLE="MESSIER 42"
+          else
+            TITLE="Plejaden"; SUBTITLE="MESSIER 45"
+          fi
+          python -u main.py --input "examples/real/$STEM.jpg" --starnet "$STARNET_EXE" --starnet-mode modern --config configs/immersive_loop.yaml --duration 30 --loop --title "$TITLE" --subtitle "$SUBTITLE" --output "personal/${STEM}_starnet_30s.mp4" --overwrite
+      - name: Make GIF and verify complete media
+        run: |
+          python - <<'PY'
+          import json,os,subprocess
+          from pathlib import Path
+          from scripts.render_photo_demo import make_preview
+          stem=os.environ['STEM']
+          mp4=Path('personal')/(stem+'_starnet_30s.mp4')
+          gif=Path('personal')/(stem+'_starnet_preview.gif')
+          assert mp4.is_file() and mp4.stat().st_size>200000
+          make_preview(mp4,gif,'ffmpeg')
+          assert gif.stat().st_size>50000
+          p=json.loads(subprocess.check_output(['ffprobe','-v','error','-show_format','-show_streams','-of','json',str(mp4)]))
+          assert 29.95<float(p['format']['duration'])<30.2
+          assert any(s.get('codec_name')=='h264' for s in p['streams'])
+          assert any(s.get('codec_name')=='aac' for s in p['streams'])
+          raw=Path('personal')/(stem+'_starnet_30s_assets')/'render_report.json'
+          report=json.loads(raw.read_text())
+          assert report['starless']=='StarNet'
+          assert report['starfield']['detected_star_particles']>=10
+          (Path('personal')/(stem+'_render_report.json')).write_text(json.dumps({
+            'usage':'Personal astrophotography export; not a software product/demo asset',
+            'source':'Seestar S50 Pro + AstroWizard',
+            'render':report},indent=2))
+          print('StarNet confirmed, photo-derived stars:',report['starfield']['detected_star_particles'])
+          PY
+      - name: Upload personal video and GIF (no StarNet redistribution)
+        uses: actions/upload-artifact@v4
+        with:
+          name: personal-starnet-${{ matrix.stem }}-30s
+          path: |
+            personal/*_starnet_30s.mp4
+            personal/*_starnet_preview.gif
+            personal/*_render_report.json
+          if-no-files-found: error
+          retention-days: 30
