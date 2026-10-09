@@ -18,7 +18,7 @@ Für dein eigenes Foto den Pfad hinter `--input` ersetzen.
 
 ## Demos
 
-**Seestar S50 Pro + AstroWizard**, eigene Aufnahmen von mir. Die enthaltenen Fotos und Demo-Medien dürfen verwendet werden; eine Quellenangabe ist willkommen. Details: [Medienhinweise](examples/real/README.md).
+**Seestar S50 Pro + AstroWizard**, eigene Aufnahmen von mir. Die enthaltenen Fotos und Demo-Medien dürfen verwendet werden.
 
 | Orionnebel · M42 | Plejaden · M45 |
 |---|---|
