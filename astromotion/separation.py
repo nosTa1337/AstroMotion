@@ -58,39 +58,14 @@ def extract_layers(original: FloatImage, starless: FloatImage, cfg: Separation) 
     if float(difference.max()) < 1e-5:
         raise ValueError("Keine separate Sternebene gefunden. Ist das sternenlose Bild das Original?")
     stars = difference / np.maximum(1 - base, 1e-6) if cfg.blend == "screen" else difference
-    if cfg.foreground_cleanup:
-        # Strong foreground zoom exposes very chromatic nebular remnants which
-        # StarNet occasionally removes together with stars. Favor neutral stellar
-        # cores, then expand around those cores to retain their colored PSF halos.
-        # Reassign excluded residuals to the background instead of discarding
-        # pixels. This is artistic foreground selection AFTER genuine StarNet,
-        # not a substitute for star removal; very faint/saturated stars may stay
-        # in the distant, stationary background.
-        peak = stars.max(axis=2)
-        neutral = stars.min(axis=2) / np.maximum(peak, 1e-6)
-        # Blue/red stars can have a very low minimum RGB channel even though
-        # their compact stellar cores are real. Rescue strong chromatic cores,
-        # while keeping faint diffuse color leftovers in the background.
-        neutral_core = np.clip((neutral - .12) / .25, 0, 1)
-        # Strongly chromatic stellar cores must also be compact. Without this
-        # shape check, long red/blue StarNet nebular remnants turn into particles.
-        chromatic = ((peak > .035) & (neutral < .18)).astype(np.uint8)
-        n_labels, ids, stats, _ = cv2.connectedComponentsWithStats(chromatic, 8)
-        compact = np.zeros(n_labels, dtype=bool)
-        for label in range(1, n_labels):
-            width = int(stats[label, cv2.CC_STAT_WIDTH])
-            height = int(stats[label, cv2.CC_STAT_HEIGHT])
-            area = int(stats[label, cv2.CC_STAT_AREA])
-            compact[label] = (area <= 120 and max(width, height) <= max(6, 3 * min(width, height)))
-        colorful_core = .85 * np.clip((peak - .035) / .12, 0, 1) * compact[ids]
-        seeds = np.maximum(neutral_core, colorful_core) * np.clip((peak - .0015) / .005, 0, 1)
-        expanded = cv2.dilate(seeds.astype(np.float32), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
-        confidence = np.maximum(seeds, cv2.GaussianBlur(expanded, (0, 0), .8))
-        stars = stars * np.clip(confidence, 0, 1)[..., None]
-        if cfg.blend == "screen":
-            base = np.clip((orig - stars) / np.maximum(1 - stars, 1e-6), 0, 1)
-        else:
-            base = np.clip(orig - stars, 0, 1)
+    # Never reassign selected star residuals into the nebula after computing
+    # the exact inverse-screen decomposition. The former RGB-neutrality mask
+    # removed arbitrary channels of blue stars independently, then solved
+    # (orig - stars)/(1 - stars), creating neon donuts/black pits. It caused
+    # severe artifacts in real Seestar Pleiades even though StarNet2's raw
+    # starless image was clean. Any small repairs happen BEFORE this split;
+    # otherwise preserve StarNet2's background with only the physical
+    # per-channel min(original, starless) bound.
     layers = Layers(base, np.clip(stars, 0, 1), cfg.blend, {"negative_mean_srgb": negative})
     layers.diagnostics["reconstruction_max_error_linear"] = float(np.abs(layers.composite() - orig).max())
     layers.diagnostics["positive_residual_energy_fraction"] = float(difference.sum() / max(float(orig.sum()), 1e-6))
