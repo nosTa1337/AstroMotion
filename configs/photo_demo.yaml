@@ -8,9 +8,9 @@ motion:
   rotation_deg: 1.0
   pan_x: 0.0
   pan_y: 0.0
-  parallax: 0.0
-  star_zoom_extra: 0.0
-  star_rotation_deg: 0.0
+  parallax: 0.55
+  star_zoom_extra: 0.045
+  star_rotation_deg: 0.7
   overscan: 1.01
 effects:
   bloom: 0.0
@@ -26,7 +26,15 @@ audio:
   harmony: floating
   accents: 0.45
 starfield:
-  enabled: false
+  enabled: true
+  count: 650
+  seed: 2026
+  near: 0.35
+  far: 3.8
+  farfield_gain: 0.45
+  foreground_gain: 0.8
+  close_passes: 0
+  photo_profiles: false
 caption:
   enabled: true
   title: Demo
