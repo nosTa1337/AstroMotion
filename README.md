@@ -131,9 +131,13 @@ Die erzeugten Dateien heißen
 `examples/real/orion_starnet_demo.mp4`,
 `examples/real/orion_starnet_preview.gif` und entsprechend
 `pleiades_starnet_demo.mp4` / `pleiades_starnet_preview.gif`.
-Sie können anschließend **normal per `git add`, `git commit`,
-`git push`** veröffentlicht werden – ohne Actions. Sie werden
-nicht ungeprüft als bereits hochgeladen ausgegeben.
+Nach dem Rendern kann `python scripts/publish_starnet_gallery.py` die beiden
+MP4s und GIFs prüfen und die Galerie **lokal** auf die StarNet-Dateien
+umstellen. Anschließend werden die Dateien mit gewöhnlichem
+`git add`, `git commit`, `git push` veröffentlicht, ohne Actions.
+Bereits erzeugte Videodateien können genauso in `examples/real/`
+kopiert und anschließend mit dem Publish-Skript eingebunden werden.
+Die StarNet-Ausgaben sind derzeit noch **nicht** in GitHub eingecheckt.
 
 **Lizenzhinweis:** Die StarNet2-Lizenz erlaubt die Veröffentlichung eigener
 Astrofotos und Bearbeitungsergebnisse, enthält aber besondere Beschränkungen
