@@ -74,12 +74,10 @@ Standardmäßig bleiben alle neuen intelligenten Anpassungen
 Farben werden immer nur dezent angepasst; das Originalfoto bleibt
 unberührt. Die automatisch ausgewählten Parameter stehen im Renderbericht.
 
-**Im Repository:** vollständiger Python-Quellcode, drei Presets, YAML-/JSON-Beispiele,
-Windows-Startdateien, Tests und ein Generator für ein synthetisches 16-Bit-Testbild
-mit passendem Starless sowie die oben gezeigten eigenen Fotos und kurzen Videos.
-Die synthetischen Testbilder und weiteren Exporte werden lokal erzeugt.
-Die ursprüngliche Projekt-ZIP enthält zusätzlich das
-synthetische Bildpaar und ein gerendertes Demovideo.
+**Im Repository:** vollständiger Python-Quellcode, Presets und YAML-/JSON-Beispiele,
+Windows-Startdateien, Tests sowie die beiden eigenen Seestar-Fotos mit echten
+StarNet2-Videos und GIFs. StarNet2 selbst und seine Modellgewichte werden
+nicht mitgeliefert.
 
 **Historische Testgrenze:** Unter Linux/Python 3.12 bestanden ursprünglich 58 Tests, einschließlich echter
 FFmpeg-Exporte. macOS wurde hier bisher nicht ausgeführt. Die echte
@@ -296,7 +294,7 @@ python main.py \
 
 Ohne eigene Musik die Zeile `--audio ...` weglassen: Das Loop-Profil erzeugt Ambient-Musik lokal. Für Ausgabe ohne Musik `--music none` setzen.
 
-**StarNet optional:** Auf der [offiziellen Downloadseite](https://starnetastro.com/cli-tools/starnet/) das zur CPU passende CLI-Paket wählen und dessen Systemanforderungen beachten. Den vollständigen Paketordner mit Bibliotheken und Modellen zusammen lassen. Für die Demo oder fertige Starless-Bilder wird StarNet nicht benötigt.
+**StarNet2 für die Demos erforderlich:** Von der [offiziellen Downloadseite](https://starnetastro.com/cli-tools/starnet/) das passende CLI-Paket installieren und die Lizenz akzeptieren. Den vollständigen Paketordner mit Bibliotheken und Modellen zusammen lassen. Bei eigenen bereits vorhandenen, korrekt mit StarNet erzeugten Starless-Bildern ist ein weiterer StarNet-Lauf nicht erforderlich.
 
 Beispiel für ein entpacktes aktuelles Paket im Ordner `$HOME/Tools/StarNet2`:
 
