@@ -90,71 +90,54 @@ python main.py --input examples/deep_sky.png --starless examples/deep_sky_starle
 
 ## Eigene Seestar-Aufnahmen und Video-Demos
 
-Die beiden Originalfotos stammen von **Seestar S50 Pro**, wurden mit
-**AstroWizard** bearbeitet und für die Verwendung freigegeben.
-Die bisherigen GIFs und MP4s im Repository wurden noch mit einer
-**OpenCV-Näherung** erstellt, nicht mit StarNet2; sie bleiben als
-technischer Vergleich erhalten und werden nicht fälschlich als
-StarNet-Renderings bezeichnet.
+Die Aufnahmen stammen vom **Seestar S50 Pro**, wurden mit **AstroWizard**
+bearbeitet und von Philipp / nosTa1337 zur Verwendung freigegeben.
+
+**Die aktuellen animierten GIFs und MP4s verwenden echte StarNet2-Sterntrennung.**
+Nebel und Sterne werden unabhängig animiert; die Sterne erhalten künstlerisch
+verteilte Tiefenwerte (keine gemessenen Sternentfernungen). Beide 30-Sekunden-
+Videos sind in **1080 × 1920 bei 30 FPS** gerendert und enthalten jeweils
+eine eigene synthetisierte Ambient-Musik. Die GIFs sind stumm.
 
 | Orionnebel · M42 | Plejaden · M45 |
 |---|---|
-| [![Orionnebel – bestehende OpenCV-GIF](examples/real/orion_preview.gif)](examples/real/orion_demo.mp4) | [![Plejaden – bestehende OpenCV-GIF](examples/real/pleiades_preview.gif)](examples/real/pleiades_demo.mp4) |
-| [Originalfoto](examples/real/orion.jpg) · [bisheriges Video](examples/real/orion_demo.mp4) | [Originalfoto](examples/real/pleiades.jpg) · [bisheriges Video](examples/real/pleiades_demo.mp4) |
+| [![Orionnebel – StarNet2-Sternflug](examples/real/orion_starnet_preview.gif)](examples/real/orion_starnet_demo.mp4) | [![Plejaden – StarNet2-Sternflug](examples/real/pleiades_starnet_preview.gif)](examples/real/pleiades_starnet_demo.mp4) |
+| [Originalfoto](examples/real/orion.jpg) · [30s-MP4 mit Musik](examples/real/orion_starnet_demo.mp4) | [Originalfoto](examples/real/pleiades.jpg) · [30s-MP4 mit Musik](examples/real/pleiades_starnet_demo.mp4) |
 
-### Echte StarNet2-Videos und GIFs – lokal erstellen
+Die älteren **OpenCV-Demos ohne StarNet2** bleiben als Vergleich erhalten:
+[Orion](examples/real/orion_demo.mp4) ·
+[Plejaden](examples/real/pleiades_demo.mp4).
 
-AstroMotion unterstützt **StarNet2 als bevorzugten Weg für eine saubere
-Stern-/Nebelseparation**. Das Skript
-[`scripts/render_starnet_examples.py`](scripts/render_starnet_examples.py)
-erzeugt aus beiden Originalfotos echte perspektivische Sternflüge:
-30 Sekunden, **1080 × 1920**, 30 FPS, lokaler Ambient-Sound (jedes Mal
-neu variiert), Nebelannäherung, Rotation, Beschriftung, Loop und
-passende stumme GIF-Vorschauen.
+**Rechtlicher Hinweis:** StarNet2 und dessen Modellgewichte sind kein Bestandteil
+des MIT-lizenzierten AstroMotion-Projekts. Die gesonderte
+[StarNet2-Lizenz](THIRD_PARTY_NOTICES.md) erlaubt grundsätzlich die
+Veröffentlichung eigener Bildbearbeitungen, schränkt aber in Abschnitt 5 die
+Verwendung ihrer Ausgaben als Assets anderer Softwareprodukte ein. Diese
+README-Galerie kann darunter fallen; eine separate Zustimmung des
+Rechteinhabers wäre die rechtssichere Lösung. Die hier verwendeten
+Bildbearbeitungsresultate werden deshalb nicht als allgemein freigegebene
+StarNet2-Produktassets bezeichnet.
 
-Nach Installation von Python-Abhängigkeiten und FFmpeg die
-[offizielle StarNet2-CLI](https://starnetastro.com/cli-tools/starnet/)
-separat herunterladen, Lizenzbedingungen lesen und akzeptieren:
+### Videos mit StarNet2 lokal neu erstellen
+
+Die offizielle [StarNet2-CLI](https://starnetastro.com/cli-tools/starnet/)
+separat installieren, Lizenz lesen und akzeptieren. Es werden keine Modelle
+oder StarNet-Programme im Repository mitgeliefert.
 
 ```bash
 python scripts/render_starnet_examples.py --starnet "/path/to/starnet2" --overwrite
 ```
 
-Unter Windows beispielsweise:
-
-```bat
-.venv\Scripts\python.exe scripts\render_starnet_examples.py --starnet "C:\Tools\StarNet2\starnet2.exe" --overwrite
-```
-
-Bei bereits vorhandenen passenden Starless-Dateien
-(`orion_starless.tif`, `pleiades_starless.tif`) kann man StarNet2
-für den neuen Export überspringen:
+Aus bereits vorhandenen passenden Starless-Bildern:
 
 ```bash
-python scripts/render_starnet_examples.py --starless-dir "path/to/starless" --overwrite
+python scripts/render_starnet_examples.py --starless-dir "/path/to/starless" --overwrite
 ```
 
-Die erzeugten Dateien heißen
-`examples/real/orion_starnet_demo.mp4`,
-`examples/real/orion_starnet_preview.gif` und entsprechend
-`pleiades_starnet_demo.mp4` / `pleiades_starnet_preview.gif`.
-Nach dem Rendern kann `python scripts/publish_starnet_gallery.py` die beiden
-MP4s und GIFs prüfen und die Galerie **lokal** auf die StarNet-Dateien
-umstellen. Anschließend werden die Dateien mit gewöhnlichem
-`git add`, `git commit`, `git push` veröffentlicht, ohne Actions.
-Bereits erzeugte Videodateien können genauso in `examples/real/`
-kopiert und anschließend mit dem Publish-Skript eingebunden werden.
-Die StarNet-Ausgaben sind derzeit noch **nicht** in GitHub eingecheckt.
-**Die vorhandenen GIFs und MP4s bleiben unverändert**; dieser lokale
-Publish-Schritt ist optional und wird nicht von GitHub Actions ausgeführt.
-
-**Lizenzhinweis:** Die StarNet2-Lizenz erlaubt die Veröffentlichung eigener
-Astrofotos und Bearbeitungsergebnisse, enthält aber besondere Beschränkungen
-für die Verwendung der Ausgaben als Software-Produktassets. Vor der
-Veröffentlichung der StarNet-basierten Vorschauen als Projektwerbung
-sollten die entsprechenden Rechte mit dem Anbieter geklärt werden.
-Die MIT-Lizenz von AstroMotion ersetzt StarNet2s Lizenz nicht.
-[Details](THIRD_PARTY_NOTICES.md).
+Um fertige, bereits gerenderte MP4s/GIFs in die Galerie zu übernehmen,
+kann man lokal `python scripts/publish_starnet_gallery.py` verwenden.
+GitHub Actions wird **nicht** zum Rendern verwendet; der einmalige
+Import der hier gezeigten Medien war ausschließlich eine Dateikopie.
 
 ### AstroMotion v1.2 – Cinematic Intelligence
 
