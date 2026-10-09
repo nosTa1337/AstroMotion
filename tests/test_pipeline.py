@@ -268,6 +268,7 @@ def test_starnet_does_not_accept_stale_output(tmp_path, monkeypatch):
 
 
 @pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="FFmpeg/FFprobe fehlen")
+@pytest.mark.video_render
 def test_interrupted_render_preserves_existing_output(pair, tmp_path):
     original, starless = pair
     input_path, starless_path = tmp_path / "input.png", tmp_path / "starless.png"
@@ -286,6 +287,7 @@ def test_interrupted_render_preserves_existing_output(pair, tmp_path):
 
 @pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="FFmpeg/FFprobe fehlen")
 @pytest.mark.parametrize("audio", ["none", "ambient", "file"])
+@pytest.mark.video_render
 def test_complete_streamed_render(pair, tmp_path, audio):
     original, starless = pair
     input_path, starless_path = tmp_path / "input.png", tmp_path / "starless.png"
