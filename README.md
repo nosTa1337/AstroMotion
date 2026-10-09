@@ -14,7 +14,7 @@
 .\.venv\Scripts\python.exe main.py --input examples\real\pleiades.jpg --starnet "C:\Program Files\StarNet2\bin\starnet2.exe" --config configs\immersive_loop.yaml --output Plejaden_video.mp4
 ```
 
-Für dein eigenes Foto den Pfad hinter `--input` ersetzen. **`--starnet` erwartet den vollständigen Pfad zur ausführbaren Datei, nicht zum Installationsordner.** Das StarNet2-Paket mit seinen Bibliotheken und Modellgewichten zusammenlassen.
+Für dein eigenes Foto den Pfad hinter `--input` ersetzen.
 
 ## Demos
 
