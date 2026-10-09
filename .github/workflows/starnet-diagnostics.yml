@@ -1,0 +1,80 @@
+name: Diagnose real StarNet2 starless artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/starnet-diagnostics.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-starless:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Download verified official StarNet2
+        run: |
+          python - <<'PY'
+          import hashlib,json,os,stat,urllib.request,zipfile
+          from pathlib import Path
+          with urllib.request.urlopen('https://starnetastro.com/cli-tools/latest.json',timeout=40) as r:
+              item=json.load(r)['tools']['starnet2']['latest']['linux-x64']
+          assert item['version']=='2.6.2'
+          package=item['packages']['archive']
+          assert package['url'].startswith('https://download.starnetastro.com/')
+          archive=Path(os.environ['RUNNER_TEMP'])/'starnet2.zip'
+          digest=hashlib.sha256()
+          with urllib.request.urlopen(package['url'],timeout=120) as src,archive.open('wb') as dst:
+              while b:=src.read(2*1024*1024):
+                  digest.update(b);dst.write(b)
+          assert digest.hexdigest()==package['sha256'] and archive.stat().st_size==package['size_bytes']
+          with zipfile.ZipFile(archive) as z:
+              licenses=[p for p in z.namelist() if p.endswith('/LICENSE.txt') and 'starnet2' in p.lower()]
+              assert len(licenses)==1 and 'Revision: 2026-09-07' in z.read(licenses[0]).decode('utf-8','replace')
+              assert all(not p.startswith('/') and '..' not in Path(p).parts for p in z.namelist())
+              z.extractall(Path(os.environ['RUNNER_TEMP'])/'starnet')
+          exe=next((Path(os.environ['RUNNER_TEMP'])/'starnet').rglob('starnet2'))
+          exe.chmod(exe.stat().st_mode|stat.S_IXUSR)
+          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('STARNET_EXE='+str(exe.resolve())+'\n')
+          PY
+      - name: Save real raw StarNet2 and AstroMotion layers
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from dataclasses import replace
+          import numpy as np
+          from astromotion.config import load_config
+          from astromotion.imaging import load_image,resize_work,save_png,to_srgb
+          from astromotion.separation import run_starnet,extract_layers
+          root=Path('diagnostics')
+          root.mkdir(exist_ok=True)
+          for stem in ('pleiades','orion'):
+              out=root/stem
+              out.mkdir()
+              cfg=load_config(Path('configs/immersive_loop.yaml'))
+              photo=resize_work(load_image(Path('examples/real')/(stem+'.jpg')),cfg.work_long_edge)
+              sep=replace(cfg.separation,executable=os.environ['STARNET_EXE'],mode='modern')
+              starless=run_starnet(photo,sep,out)
+              save_png(out/'raw_starless.png',starless)
+              layers=extract_layers(photo,starless,sep)
+              save_png(out/'cleaned_background.png',to_srgb(layers.nebula))
+              save_png(out/'star_residual.png',to_srgb(layers.stars))
+              from shutil import copy2
+              copy2(Path('examples/real')/(stem+'.jpg'),out/'original.jpg')
+              print(stem,photo.shape,layers.diagnostics,flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: starnet2-raw-layer-diagnostic
+          path: diagnostics/*/*.png
+          if-no-files-found: error
+          retention-days: 3
