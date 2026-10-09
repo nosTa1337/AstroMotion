@@ -1,0 +1,38 @@
+name: Verify StarNet CLI terms
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/verify-starnet-terms.yml
+
+permissions:
+  contents: read
+
+jobs:
+  license:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Download official StarNet archive and display its bundled license
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, urllib.request, zipfile
+          from pathlib import Path
+          feed=json.load(urllib.request.urlopen("https://starnetastro.com/cli-tools/latest.json",timeout=30))
+          item=feed["tools"]["starnet2"]["latest"]["linux-x64"]
+          info=item["packages"]["archive"]
+          print("StarNet version:", item["version"],"build:",item["build"],flush=True)
+          print("Archive:", info["url"],flush=True)
+          archive=Path("/tmp/starnet2-cli.zip")
+          urllib.request.urlretrieve(info["url"],archive)
+          print("SHA256:", hashlib.sha256(archive.read_bytes()).hexdigest(),flush=True)
+          assert archive.stat().st_size==info["size_bytes"]
+          assert hashlib.sha256(archive.read_bytes()).hexdigest()==info["sha256"]
+          with zipfile.ZipFile(archive) as z:
+              names=[n for n in z.namelist() if "license" in n.lower() or "readme" in n.lower()]
+              print("Legal/doc files:", names,flush=True)
+              for name in names:
+                  if "license" in name.lower() and len(z.read(name)) < 125000:
+                      print("\n===== BEGIN",name,"=====\n", z.read(name).decode("utf-8","replace"), "\n===== END",name,"=====",flush=True)
+          PY
