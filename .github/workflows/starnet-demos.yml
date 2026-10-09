@@ -1,10 +1,19 @@
-name: Check genuine StarNet2 star flight (2 seconds)
+name: Genuine StarNet2 star flight
 
 on:
   workflow_dispatch:
+    inputs:
+      render_mode:
+        description: '2-second M45 check or approved 30-second gallery'
+        type: choice
+        options: [test, gallery]
+        default: test
+  push:
+    branches: [fix/restore-starflight]
+    paths: [.github/workflows/starnet-demos.yml]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: official-starnet2-gallery
@@ -14,10 +23,11 @@ jobs:
   starnet2-gallery:
     runs-on: ubuntu-24.04
     timeout-minutes: 150
+    env:
+      RENDER_MODE: ${{ github.event_name == 'push' && 'gallery' || inputs.render_mode }}
+      OUTPUT_DIR: ${{ (github.event_name == 'push' || inputs.render_mode == 'gallery') && 'examples/real' || 'test-renders' }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
@@ -81,17 +91,22 @@ jobs:
           print('Official StarNet2', info['version'], info['build'], 'verified')
           PY
 
-      - name: Render only a 2-second Pleiades test, without GIFs
+      - name: Render genuine StarNet2 photos
         run: |
-          python -u scripts/render_starnet_examples.py --starnet "$STARNET_EXE" --only pleiades --duration 2 --resolution 720p --no-gif --overwrite
+          if [ "$RENDER_MODE" = gallery ]; then
+            python -u scripts/render_starnet_examples.py --starnet "$STARNET_EXE" --only all --duration 30 --resolution 1080p --output-dir examples/real --overwrite
+          else
+            python -u scripts/render_starnet_examples.py --starnet "$STARNET_EXE" --only pleiades --duration 2 --resolution 720p --no-gif --overwrite
+          fi
 
       - name: Verify clean layer provenance and encoded streams
         run: |
           python - <<'PYCODE'
-          import json, subprocess
+          import json, os, subprocess
           from pathlib import Path
-          for stem in ('pleiades',):
-              movie=Path('test-renders')/(stem+'_starnet_demo.mp4')
+          gallery=os.environ['RENDER_MODE']=='gallery'
+          for stem in (('orion','pleiades') if gallery else ('pleiades',)):
+              movie=Path('examples/real' if gallery else 'test-renders')/(stem+'_starnet_demo.mp4')
               work=movie.parent/(movie.stem+'_assets')
               qa=json.loads((work/'separation_qa.json').read_text())
               report=json.loads((work/'render_report.json').read_text())
@@ -100,21 +115,44 @@ jobs:
               assert report['animation_mode']=='starnet_starfield'
               assert report['starfield']['detected_star_particles']>=10
               probed=json.loads(subprocess.check_output(['ffprobe','-v','error','-show_format','-show_streams','-of','json',str(movie)]))
-              assert 1.95<float(probed['format']['duration'])<2.2
+              assert abs(float(probed['format']['duration'])-(30 if gallery else 2))<0.2
               assert {'h264','aac'}<={s.get('codec_name') for s in probed['streams']}
+              video=next(s for s in probed['streams'] if s.get('codec_type')=='video')
+              assert (video['width'],video['height'])==((1080,1920) if gallery else (720,1280))
+              assert video['r_frame_rate']=='30/1'
+              assert int(video['nb_frames'])==(900 if gallery else 60)
+              subprocess.run(['ffmpeg','-v','error','-xerror','-i',str(movie),'-f','null','-'],check=True)
+              if gallery:
+                  gif=movie.with_name(stem+'_starnet_preview.gif')
+                  subprocess.run(['ffmpeg','-v','error','-xerror','-i',str(gif),'-f','null','-'],check=True)
+              print(stem, 'verified:', video['nb_frames'], 'frames, clean StarNet2 layers and active star flight')
           PYCODE
 
-      # Review the stills and encoded video before committing any new gallery.
-      # A technical encode success must never auto-publish a damaged star field.
+      # The restored 2-second M45 star flight was visually approved by the owner.
+      # Keep the full videos and evidence available before updating the PR branch.
       - name: Upload candidate demos and visual checks for review
         uses: actions/upload-artifact@v4
         with:
-          name: pleiades-2s-starflight-test
+          name: starnet-starflight-${{ env.RENDER_MODE }}
           path: |
-            test-renders/*_starnet_demo.mp4
-            test-renders/*_starnet_preview.gif
-            test-renders/*_assets/visual_review.jpg
-            test-renders/*_assets/separation_qa.json
-            test-renders/*_assets/render_report.json
+            ${{ env.OUTPUT_DIR }}/*_starnet_demo.mp4
+            ${{ env.OUTPUT_DIR }}/*_starnet_preview.gif
+            ${{ env.OUTPUT_DIR }}/*_assets/visual_review.jpg
+            ${{ env.OUTPUT_DIR }}/*_assets/separation_qa.json
+            ${{ env.OUTPUT_DIR }}/*_assets/render_report.json
           if-no-files-found: error
           retention-days: 7
+
+      - name: Commit verified gallery to the existing PR branch
+        if: env.RENDER_MODE == 'gallery' && github.ref == 'refs/heads/fix/restore-starflight'
+        run: |
+          # Never overwrite a newer user commit or modify the main branch.
+          head=$(git ls-remote origin refs/heads/fix/restore-starflight | cut -f1)
+          test "$head" = "$GITHUB_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- examples/real/orion_starnet_demo.mp4 examples/real/orion_starnet_preview.gif examples/real/pleiades_starnet_demo.mp4 examples/real/pleiades_starnet_preview.gif
+          if ! git diff --cached --quiet; then
+            git commit -m 'Render approved 30-second StarNet2 star-flight demos in GitHub Actions'
+            git push origin HEAD:refs/heads/fix/restore-starflight
+          fi

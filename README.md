@@ -33,7 +33,7 @@ Die fehlerhafte `foreground_cleanup`-Umverteilung und nachträgliche Lochreparat
 
 Die Qualität der ursprünglichen StarNet2-Ausgabe bleibt maßgeblich. Bereits dort vorhandene Halos werden nicht künstlich wegretuschiert. Bei auffälligem Abdriften: `motion.star_zoom_extra` reduzieren, bei Bedarf auf `0` (gleiche Zoombewegung).
 
-**Aktueller Prüfstand:** Der Sternflug wurde im Code wiederhergestellt. Seine Bildqualität ist nach der Wiederherstellung noch nicht am echten Video bestätigt. Zuerst ein 2-Sekunden-Test, vollständige Demos erst nach Sichtfreigabe.
+**Aktueller Prüfstand:** Der wiederhergestellte Sternflug wurde mit einem echten 2-Sekunden-M45-Video geprüft und vom Projektbetreiber visuell freigegeben. Der vollständige Loop ist im Kurztest entsprechend schneller. Die 30-Sekunden-Demos werden anschließend über GitHub Actions mit derselben Pipeline gerendert; spätere manuelle Prüfungen verwenden standardmäßig wieder den 2-Sekunden-Test.
 
 Details zu Ursache, Git-History und Prüfung: [CLEAN_PIPELINE_REPORT.md](CLEAN_PIPELINE_REPORT.md).
 

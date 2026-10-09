@@ -12,10 +12,10 @@ Quellenangabe ist willkommen.
 **1080 × 1920, 30 FPS, H.264/AAC.** Die Sternentrennung erfolgte mit
 der echten, separat installierten **StarNet2-CLI**, nicht mit einer
 OpenCV-Approximation. Sterne und Nebel bewegen sich unabhängig;
-es werden die vollständigen fotografischen RGB-Ebenen animiert. Die Musik wurde
+der Sternflug verwendet fotografische Profile aus dem StarNet2-Residuum. Die Musik wurde
 lokal synthetisiert, GIFs bleiben stumm.
 
-Aktueller Stand: saubere Ebenenanimation ohne Cleanup, Lochfilter oder Stern-Sprites. Die Demos verwenden protokollierte echte StarNet2-Ausgaben; siehe [Prüfbericht](../../CLEAN_PIPELINE_REPORT.md).
+Aktueller Stand: individueller Sternflug mit fotografischen Sternprofilen, ohne Cleanup, Lochfilter oder zusätzliche Farbeffekte. Der 2-Sekunden-M45-Test wurde visuell freigegeben; die vollständigen Demos werden über GitHub Actions erneuert. Sie verwenden protokollierte echte StarNet2-Ausgaben; siehe [Prüfbericht](../../CLEAN_PIPELINE_REPORT.md).
 
 Mit offizieller StarNet2-CLI und gültiger Lizenz zunächst die Ebenen prüfen:
 
