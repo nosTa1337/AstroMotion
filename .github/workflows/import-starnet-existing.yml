@@ -1,0 +1,53 @@
+name: Import existing StarNet videos and GIFs (no rendering)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/import-starnet-existing.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  copy-existing-media:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Download previously finished MP4s and GIFs
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 37904491672
+          repository: nosTa1337/AstroMotion
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: personal-starnet-*-30s
+          merge-multiple: true
+          path: _starnet_import
+
+      - name: Check pre-rendered media and update README references
+        run: |
+          find _starnet_import -maxdepth 1 -type f -printf '%f %s bytes\n'
+          python -m compileall -q scripts/publish_starnet_gallery.py
+          python scripts/publish_starnet_gallery.py --source-dir _starnet_import
+          git diff --exit-code -- examples/real/orion_demo.mp4 examples/real/pleiades_demo.mp4 examples/real/orion_preview.gif examples/real/pleiades_preview.gif examples/real/orion.jpg examples/real/pleiades.jpg
+
+      - name: Commit copies and changed documentation only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md THIRD_PARTY_NOTICES.md examples/real/README.md
+          git add examples/real/orion_starnet_demo.mp4 examples/real/orion_starnet_preview.gif
+          git add examples/real/pleiades_starnet_demo.mp4 examples/real/pleiades_starnet_preview.gif
+          if ! git diff --cached --quiet; then
+            git commit -m "Link existing StarNet video and GIF examples in README"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
