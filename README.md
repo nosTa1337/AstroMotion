@@ -4,14 +4,21 @@
 
 # AstroMotion
 
-Lokale CLI für Cinematic-Deep-Sky-Videos aus **einem fertigen Astrofoto**.
-Version 1.1: frei konfigurierbare Dauer, standardmäßig 30 Sekunden, und optional
-ein nahtloser Bild-/Musik-Loop. Bestehende Konfigurationen behalten ihre Dauer.
-Sterne und Nebel bewegen sich unabhängig: unterschiedliche Zoomraten, ruhige
-Rotation, sanfter Kameraschwenk, optionale Sternrotation und Funkeln. Keine API,
-keine Cloud, keine Weboberfläche. Nach der Installation funktioniert das Rendering
-offline. Python 3.11+; Python 3.12 wird für die gepinnten Abhängigkeiten empfohlen.
-Einrichtungsanleitungen für Windows, Linux und macOS stehen unten.
+**AstroMotion v1.2** verwandelt fertig bearbeitete Astrofotos in ruhige, cinematische
+Deep-Sky-Videos mit echtem 2,5D-Sternflug, sanftem Nebelzoom, optionaler
+Sternrotation, eigener Ambient-Musik und nahtlosen Loops. Neu sind
+**Cinematic Intelligence** (automatischer Kamerafokus, vorsichtige
+bildabhängige Farbkorrektur, adaptiver Sternflug) und eine 3-Sekunden-Vorschau.
+
+**Für den hochwertigen Sternflug wird eine echte Sterntrennung benötigt:**
+entweder die separat installierte **StarNet2-CLI** oder ein passendes,
+bereits vorhandenes **Starless-Bild**. StarNet2 wird aus Lizenzgründen nicht
+mitgeliefert; Nutzer installieren es selbst und akzeptieren dessen Bedingungen.
+Ein OpenCV-Demomodus ohne StarNet existiert nur als eingeschränkte Alternative.
+
+**Keine Cloud, keine API, keine GitHub Actions:** AstroMotion läuft mit Python
+3.11+ (empfohlen 3.12), OpenCV, NumPy und lokal installiertem FFmpeg
+unter Windows, Linux und macOS. Alle Renderings erfolgen lokal.
 
 ## TL;DR – schnell zum ersten Video
 
@@ -74,34 +81,93 @@ python main.py --input examples/deep_sky.png --starless examples/deep_sky_starle
 **Eigene Fotos:** `--input` und `--starless` durch dein Foto und dessen passendes sternenloses Bild ersetzen; alternativ [StarNet verwenden](#variante-b-starnet--starnet2-lokal).
 **Andere Länge:** `--duration 45`. **Erneut exportieren:** `--overwrite`. **Details/Probleme:** [Einrichtung](#1-einrichtung).
 
-## Eigene Aufnahmen und Beispielvideos
+## Eigene Seestar-Aufnahmen und Video-Demos
 
-**Seestar S50 Pro + AstroWizard · eigene Aufnahmen von mir dürfen verwendet werden.** Die Originalfotos sind unverändert im Repository abgelegt. Für die daraus erzeugten Videos und GIF-Vorschauen gilt dieselbe Erlaubnis; Details in [examples/real/README.md](examples/real/README.md).
+Die beiden Originalfotos stammen von **Seestar S50 Pro**, wurden mit
+**AstroWizard** bearbeitet und für die Verwendung freigegeben.
+Die bisherigen GIFs und MP4s im Repository wurden noch mit einer
+**OpenCV-Näherung** erstellt, nicht mit StarNet2; sie bleiben als
+technischer Vergleich erhalten und werden nicht fälschlich als
+StarNet-Renderings bezeichnet.
 
 | Orionnebel · M42 | Plejaden · M45 |
 |---|---|
-| [![Orionnebel – animierte Vorschau](examples/real/orion_preview.gif)](https://github.com/nosTa1337/AstroMotion/raw/refs/heads/main/examples/real/orion_demo.mp4) | [![Plejaden – animierte Vorschau](examples/real/pleiades_preview.gif)](https://github.com/nosTa1337/AstroMotion/raw/refs/heads/main/examples/real/pleiades_demo.mp4) |
-| [Originalfoto](examples/real/orion.jpg) · [MP4 mit Musik öffnen / herunterladen](https://github.com/nosTa1337/AstroMotion/raw/refs/heads/main/examples/real/orion_demo.mp4) | [Originalfoto](examples/real/pleiades.jpg) · [MP4 mit Musik öffnen / herunterladen](https://github.com/nosTa1337/AstroMotion/raw/refs/heads/main/examples/real/pleiades_demo.mp4) |
+| [![Orionnebel – bestehende OpenCV-GIF](examples/real/orion_preview.gif)](examples/real/orion_demo.mp4) | [![Plejaden – bestehende OpenCV-GIF](examples/real/pleiades_preview.gif)](examples/real/pleiades_demo.mp4) |
+| [Originalfoto](examples/real/orion.jpg) · [bisheriges Video](examples/real/orion_demo.mp4) | [Originalfoto](examples/real/pleiades.jpg) · [bisheriges Video](examples/real/pleiades_demo.mp4) |
 
-Jeweils **30 Sekunden · 720 × 1280 · 30 FPS · H.264/AAC**, ruhige Bildanimation und lokal erzeugte Ambient-Musik. Die kleinen GIFs spielen direkt in der README ohne Ton; ein Klick führt zum vollständigen MP4 mit Ton. YouTube ist dafür nicht erforderlich. Für längere oder größere Videos sind YouTube/Vimeo oder GitHub Releases Alternativen; hier liegen die kurzen Beispiele direkt im Repository.
+### Echte StarNet2-Videos und GIFs – lokal erstellen
 
-**In den aktuellen Demos bewegen sich aus den Fotos erkannte Sterne unabhängig vom Nebel im Raum.** Die OpenCV-Sternabschätzung ist eine künstlerische Näherung für öffentliche Demos (kein StarNet, keine wissenschaftliche Sternentfernung). Das Demo-Skript aktualisiert beim Rendern MP4s und GIF-Vorschauen. Für hochwertige Aufnahmen das Hauptprogramm mit einer echten Starless-Datei verwenden.
+AstroMotion unterstützt **StarNet2 als bevorzugten Weg für eine saubere
+Stern-/Nebelseparation**. Das Skript
+[`scripts/render_starnet_examples.py`](scripts/render_starnet_examples.py)
+erzeugt aus beiden Originalfotos echte perspektivische Sternflüge:
+30 Sekunden, **1080 × 1920**, 30 FPS, lokaler Ambient-Sound (jedes Mal
+neu variiert), Nebelannäherung, Rotation, Beschriftung, Loop und
+passende stumme GIF-Vorschauen.
 
-### Persönliche StarNet-Renderings (getrennt von der öffentlichen Demo)
-
-Für die zwei eigenen Seestar-Fotos gibt es einen separaten Workflow: [**Personal StarNet videos and GIFs**](https://github.com/nosTa1337/AstroMotion/actions/workflows/personal-starnet-render.yml). Er verarbeitet die Originalfotos mit der **offiziellen StarNet2-CLI**, rendert **30 Sekunden in 1080 × 1920 bei 30 FPS** mit eigenständigem perspektivischem Sternflug, dezentem Objekttext, einer jeweils zufälligen Ambient-Musikvariante und erzeugt passende tonlose GIFs. Die Aufnahmen stammen vom **Seestar S50 Pro** und wurden in **AstroWizard** bearbeitet.
-
-Über **Run workflow** lässt sich ein privater Foto-Export anstoßen. Zuvor die vollständige Lizenz der verwendeten StarNet-Version lesen und die Zustimmung im Workflow ausdrücklich bestätigen. Der Workflow prüft Version, SHA-256 und Lizenzrevision und lädt die CLI ausschließlich von der offiziellen Quelle. Die erzeugten Dateien stehen nach erfolgreichem Abschluss unter **Artifacts** des jeweiligen GitHub-Actions-Laufs für 30 Tage zum Herunterladen bereit. Im Repository werden weder StarNet-Programmdateien oder Modelle noch die StarNet-erzeugten Bilder/Videos eingecheckt.
-
-**Warum sind die StarNet-Videos nicht direkt in der README eingebettet?** Abschnitt 5 der aktuellen StarNet2-Lizenz untersagt die Verwendung der Ausgaben als Assets zur Entwicklung, Erprobung oder Verbesserung anderer Softwareprodukte. Für öffentlich im README eingebettete **AstroMotion-Produktdemos** bleiben deshalb die oben gezeigten, ohne StarNet erzeugten GIFs und Videos vorgesehen. Die getrennten StarNet-Exporte sind für deine persönliche Astrofotografie gedacht. [Lizenzdetails](THIRD_PARTY_NOTICES.md).
-
-Neu rendern (aktivierte Python-Umgebung, funktioniert auch unter Windows):
+Nach Installation von Python-Abhängigkeiten und FFmpeg die
+[offizielle StarNet2-CLI](https://starnetastro.com/cli-tools/starnet/)
+separat herunterladen, Lizenzbedingungen lesen und akzeptieren:
 
 ```bash
-python scripts/render_photo_demo.py --overwrite
+python scripts/render_starnet_examples.py --starnet "/path/to/starnet2" --overwrite
 ```
 
-Dabei entsteht jedes Mal eine neue, ähnliche Ambient-Variante. `--seed 1234` macht die Musik wiederholbar; `--duration 45` ändert die Länge. Konfiguration: [configs/photo_demo.yaml](configs/photo_demo.yaml).
+Unter Windows beispielsweise:
+
+```bat
+.venv\Scripts\python.exe scripts\render_starnet_examples.py --starnet "C:\Tools\StarNet2\starnet2.exe" --overwrite
+```
+
+Bei bereits vorhandenen passenden Starless-Dateien
+(`orion_starless.tif`, `pleiades_starless.tif`) kann man StarNet2
+für den neuen Export überspringen:
+
+```bash
+python scripts/render_starnet_examples.py --starless-dir "path/to/starless" --overwrite
+```
+
+Die erzeugten Dateien heißen
+`examples/real/orion_starnet_demo.mp4`,
+`examples/real/orion_starnet_preview.gif` und entsprechend
+`pleiades_starnet_demo.mp4` / `pleiades_starnet_preview.gif`.
+Sie können anschließend **normal per `git add`, `git commit`,
+`git push`** veröffentlicht werden – ohne Actions. Sie werden
+nicht ungeprüft als bereits hochgeladen ausgegeben.
+
+**Lizenzhinweis:** Die StarNet2-Lizenz erlaubt die Veröffentlichung eigener
+Astrofotos und Bearbeitungsergebnisse, enthält aber besondere Beschränkungen
+für die Verwendung der Ausgaben als Software-Produktassets. Vor der
+Veröffentlichung der StarNet-basierten Vorschauen als Projektwerbung
+sollten die entsprechenden Rechte mit dem Anbieter geklärt werden.
+Die MIT-Lizenz von AstroMotion ersetzt StarNet2s Lizenz nicht.
+[Details](THIRD_PARTY_NOTICES.md).
+
+### AstroMotion v1.2 – Cinematic Intelligence
+
+Das Preset [`configs/cinematic_intelligence.yaml`](configs/cinematic_intelligence.yaml)
+aktiviert den intelligenten Kamerafokus, sanfte bildabhängige
+Kontrast-/Sättigungsanpassung und einen adaptiv verteilten Sternflug.
+Sternhelligkeit dient dabei **nur als künstlerischer Tiefenhinweis**,
+nicht als astronomische Entfernungsmessung.
+
+```bash
+# Mit einer echten Starless-Datei
+python main.py --input orion.jpg --starless orion_starless.tif --config configs/cinematic_intelligence.yaml --output orion_v12.mp4
+
+# Mit StarNet2 statt separatem Starless
+python main.py --input orion.jpg --starnet "/path/to/starnet2" --config configs/cinematic_intelligence.yaml --output orion_v12.mp4
+
+# Schnelle Vorschau: 3 Sekunden, 720p, 24 FPS
+python main.py --input orion.jpg --starless orion_starless.tif --config configs/cinematic_intelligence.yaml --preview --output orion_preview.mp4
+```
+
+Alternativ zu einem Preset können `--auto-focus`, `--auto-color`
+und `--depth-mode adaptive` individuell aktiviert werden.
+Standardmäßig bleiben alle neuen intelligenten Anpassungen
+**aus**, damit bisherige Ergebnisse unverändert bleiben.
+Farben werden immer nur dezent angepasst; das Originalfoto bleibt
+unberührt. Die automatisch ausgewählten Parameter stehen im Renderbericht.
 
 **Im Repository:** vollständiger Python-Quellcode, drei Presets, YAML-/JSON-Beispiele,
 Windows-Startdateien, Tests und ein Generator für ein synthetisches 16-Bit-Testbild
@@ -110,7 +176,7 @@ Die synthetischen Testbilder und weiteren Exporte werden lokal erzeugt.
 Die ursprüngliche Projekt-ZIP enthält zusätzlich das
 synthetische Bildpaar und ein gerendertes Demovideo.
 
-**Testgrenze:** Unter Linux/Python 3.12 bestehen 58 Tests, einschließlich echter
+**Historische Testgrenze:** Unter Linux/Python 3.12 bestanden ursprünglich 58 Tests, einschließlich echter
 FFmpeg-Exporte. macOS wurde hier bisher nicht ausgeführt. Die echte
 StarNet2-CLI 2.6.2 wurde inzwischen nach Zustimmung zu ihrer Lizenz lokal ausgeführt,
 einschließlich 2×-Verarbeitung. Windows-Batchdateien und der Windows-Build müssen
