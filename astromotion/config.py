@@ -89,6 +89,8 @@ class Starfield:
     max_radius: float = 12.0  # sigma cap at a 1080-pixel short edge
     shutter: float = 0.6  # subframe motion trail in frame intervals
     photo_profiles: bool = False
+    depth_mode: str = "random"  # random or adaptive; artistic brightness/depth correlation
+    depth_correlation: float = 0.40  # 0..1; relative star brightness is not distance
     close_passes: int = 0  # number of featured real stars over the whole clip
     close_scale: float = 1.6
     close_blur: float = 2.4  # pixels at 1080-short-edge, only featured near stars
@@ -118,6 +120,14 @@ class Loop:
 
 
 @dataclass
+class Cinematic:
+    auto_focus: bool = False
+    auto_color: bool = False
+    focus_strength: float = 0.80
+    color_strength: float = 0.85
+
+
+@dataclass
 class Config:
     preset: str = "cinematic"
     format: str = "vertical"
@@ -128,6 +138,7 @@ class Config:
     max_input_pixels: int = 120_000_000
     save_layers: bool = True
     motion: Motion = field(default_factory=Motion)
+    cinematic: Cinematic = field(default_factory=Cinematic)
     effects: Effects = field(default_factory=Effects)
     separation: Separation = field(default_factory=Separation)
     audio: Audio = field(default_factory=Audio)
@@ -172,6 +183,9 @@ class Config:
             raise ValueError("Pan max. ±0.15; Overscan: 1..1.5.")
         if not (.1 <= m.center_x <= .9 and .1 <= m.center_y <= .9):
             raise ValueError("Bildzentrum: 0.1..0.9 (begrenzter Ausschnitt verhindert Randlücken).")
+        if not (0 <= self.cinematic.focus_strength <= 1 and
+                0 <= self.cinematic.color_strength <= 1):
+            raise ValueError("Cinematic: focus_strength und color_strength müssen 0..1 sein.")
         e = self.effects
         if any(not 0 <= getattr(e, k) <= 1 for k in ("bloom", "glow", "vignette", "grade", "twinkle")):
             raise ValueError("Effektstärken: 0..1.")
@@ -210,6 +224,8 @@ class Config:
             raise ValueError("Starfield drift max. ±0.5; Rotation max. 15°.")
         if not (0 <= f.farfield_gain <= 1 and 0 <= f.foreground_gain <= 3 and 1 <= f.max_radius <= 30 and 0 <= f.shutter <= 2):
             raise ValueError("Ungültige Starfield-Helligkeit, Radius oder Shutter.")
+        if f.depth_mode not in ("random", "adaptive") or not 0 <= f.depth_correlation <= 1:
+            raise ValueError("Starfield: depth_mode random/adaptive, depth_correlation 0..1.")
         if not (0 <= f.close_passes <= 20 and 1 <= f.close_scale <= 2.5 and 0 <= f.close_blur <= 8):
             raise ValueError("Close passes: 0..20; Scale: 1..2.5; Blur: 0..8.")
         c = self.caption
