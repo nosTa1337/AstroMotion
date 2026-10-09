@@ -16,6 +16,24 @@
 
 Für dein eigenes Foto den Pfad hinter `--input` ersetzen.
 
+## Geführter Start ohne lange Befehle
+
+Unter Windows **`start_wizard.bat`** doppelklicken oder ein Bild darauf ziehen. Alternativ:
+
+```powershell
+.\.venv\Scripts\python.exe wizard.py
+```
+
+Beim ersten Start fragt das Skript nach der **StarNet2-EXE**, dem **Bilderordner**, dem **Videoordner** und **FFmpeg/FFprobe**. Danach reicht der Bildname aus dem gespeicherten Ordner oder ein vollständiger Bildpfad.
+
+Pro Video wählst du Länge, FPS, Auflösung, Format, Perfect Loop, Titel, Untertitel und Musik. **Enter übernimmt die Vorgabe**; die Videoeinstellungen werden für den nächsten Start gespeichert. Titel und Untertitel bleiben an das jeweilige Bild gebunden und werden jedes Mal neu abgefragt. `-` leert ein optionales Feld. Ambient-Musik bleibt mit `zufall` bei jedem Render neu.
+
+Ein optionales Menü bietet Hintergrundzoom, Drehung, seitliche Sternbewegung, Sternanzahl, Helligkeit, Loop-Tempo, Lautstärke und Textgröße. Vor dem Rendern zeigt das Skript die Auswahl und fragt nach dem Start. Vorhandene Videos werden nur nach ausdrücklicher Bestätigung ersetzt.
+
+Pfade neu einrichten: `start_wizard.bat --setup`. Einstellungen prüfen, ohne ein Video zu rendern: `start_wizard.bat --dry-run`. Linux/macOS: `python wizard.py` in der aktivierten Projektumgebung.
+
+Die lokalen Einstellungen liegen in `.astromotion-wizard.json` und werden von Git ignoriert. Das Skript nutzt dieselbe StarNet2-Pipeline und denselben Python-Interpreter wie der Startbefehl.
+
 ## Demos
 
 **Seestar S50 Pro + AstroWizard**, eigene Aufnahmen von mir. Die enthaltenen Fotos und Demo-Medien dürfen verwendet werden; eine Quellenangabe ist willkommen. Details: [Medienhinweise](examples/real/README.md).
