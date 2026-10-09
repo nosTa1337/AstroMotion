@@ -109,8 +109,33 @@ jobs:
               assert report['starless']=='StarNet', 'Did not use StarNet2'
               assert report['starfield']['detected_star_particles']>=10
               assert report['diagnostics']['reconstruction_max_error_linear']<.001
-              print(stem, 'verified StarNet2', movie.stat().st_size, 'bytes')
+              # Crucial VISUAL regression guard: the old chromatic cleanup
+              # wrecked 0.42% of Pleiades background pixels (>0.25 sRGB),
+              # even while the video encoded perfectly. Healthy separation
+              # changes only about 0.01% this dramatically.
+              import numpy as np
+              from astromotion.imaging import load_image
+              raw=load_image(folder/(movie.stem+'_assets')/'starnet_starless.tif')
+              nebula=load_image(folder/(movie.stem+'_assets')/'nebula.png')
+              strong=np.max(np.abs(raw-nebula),axis=2)>0.25
+              damaged=float(np.mean(strong))
+              assert damaged<.001, (
+                  f'{stem}: StarNet background corrupted in {damaged:.2%} of pixels; '
+                  'possible colored donut regression, refusing publication')
+              print(stem, 'verified StarNet2; significant background changes',f'{damaged:.3%}',flush=True)
           PY
+
+      - name: Retain preview GIFs, quality report and sample video for visual inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: reviewed-starnet2-gallery
+          path: |
+            examples/real/orion_starnet_preview.gif
+            examples/real/pleiades_starnet_preview.gif
+            examples/real/orion_starnet_demo.mp4
+            examples/real/pleiades_starnet_demo.mp4
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Publish only verified StarNet2 demo media to main
         run: |
