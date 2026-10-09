@@ -1,9 +1,12 @@
 name: Personal StarNet videos and GIFs
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - .github/workflows/personal-starnet-render.yml
+    inputs:
+      license_accepted:
+        description: 'I have read and accepted the applicable StarNet2 2.6.2 license'
+        type: boolean
+        required: true
+        default: false
 permissions:
   contents: read
 jobs:
@@ -22,6 +25,14 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
+      - name: Confirm StarNet license acceptance
+        env:
+          ACCEPTED: ${{ inputs.license_accepted }}
+        run: |
+          if [ "$ACCEPTED" != "true" ]; then
+            echo "Read the original license supplied with StarNet2 2.6.2 and explicitly accept it."
+            exit 1
+          fi
       - name: Install Python and FFmpeg runtime
         run: |
           sudo apt-get update -qq
