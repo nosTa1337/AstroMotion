@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astromotion"
-version = "1.1.0"
+version = "1.2.0"
 description = "Local cinematic parallax videos from deep-sky photographs"
 requires-python = ">=3.11"
 dynamic = ["dependencies"]
