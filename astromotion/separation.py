@@ -72,7 +72,17 @@ def extract_layers(original: FloatImage, starless: FloatImage, cfg: Separation) 
         # their compact stellar cores are real. Rescue strong chromatic cores,
         # while keeping faint diffuse color leftovers in the background.
         neutral_core = np.clip((neutral - .12) / .25, 0, 1)
-        colorful_core = .85 * np.clip((peak - .035) / .12, 0, 1)
+        # Strongly chromatic stellar cores must also be compact. Without this
+        # shape check, long red/blue StarNet nebular remnants turn into particles.
+        chromatic = ((peak > .035) & (neutral < .18)).astype(np.uint8)
+        n_labels, ids, stats, _ = cv2.connectedComponentsWithStats(chromatic, 8)
+        compact = np.zeros(n_labels, dtype=bool)
+        for label in range(1, n_labels):
+            width = int(stats[label, cv2.CC_STAT_WIDTH])
+            height = int(stats[label, cv2.CC_STAT_HEIGHT])
+            area = int(stats[label, cv2.CC_STAT_AREA])
+            compact[label] = (area <= 120 and max(width, height) <= max(6, 3 * min(width, height)))
+        colorful_core = .85 * np.clip((peak - .035) / .12, 0, 1) * compact[ids]
         seeds = np.maximum(neutral_core, colorful_core) * np.clip((peak - .0015) / .005, 0, 1)
         expanded = cv2.dilate(seeds.astype(np.float32), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
         confidence = np.maximum(seeds, cv2.GaussianBlur(expanded, (0, 0), .8))
