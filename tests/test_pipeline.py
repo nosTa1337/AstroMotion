@@ -42,17 +42,21 @@ def test_reconstruction(pair, blend):
 
 
 @pytest.mark.parametrize("blend", ["screen", "additive"])
-def test_foreground_cleanup_keeps_colorful_remnants_in_background(blend):
+def test_foreground_cleanup_never_introduces_colored_holes_into_clean_starnet(blend):
+    # Regression: earlier chromatic residual mask converted perfectly clean
+    # StarNet2 background pixels to rainbow rings around blue stellar cores.
     base = np.full((64, 96, 3), .02, np.float32)
     stars = np.zeros_like(base)
-    stars[20:22, 20:22] = [.6, .55, .5]  # compact, nearly neutral star
-    stars[40:42, 50:75] = [.12, .005, .001]  # highly chromatic elongated remnant
+    stars[20:22, 20:22] = [.6, .55, .5]  # compact, neutral star
+    stars[40:42, 50:75] = [.12, .005, .001]  # elongated color residual
     original = to_srgb(composite(base, stars, blend))
-    cleaned = extract_layers(original, to_srgb(base), Separation(blend=blend, foreground_cleanup=True))
-    np.testing.assert_allclose(cleaned.composite(), to_linear(original), atol=3e-7)
-    assert cleaned.stars[20:22, 20:22].max() > .45
-    assert cleaned.stars[40:42, 50:75].max() < .002
-    assert cleaned.nebula[40:42, 50:75, 0].mean() > .1
+    layers = extract_layers(original, to_srgb(base), Separation(blend=blend, foreground_cleanup=True))
+    np.testing.assert_allclose(layers.composite(), to_linear(original), atol=3e-7)
+    np.testing.assert_allclose(layers.nebula, base, atol=3e-7)
+    assert layers.stars[20:22, 20:22].max() > .45
+    # Keep chromatic residual out of the NEBULA. Star particle detection may
+    # filter it independently, but must not corrupt the background.
+    assert layers.stars[40:42, 50:75].max() > .10
 
 
 def test_mismatched_and_missing_stars_fail(pair):
