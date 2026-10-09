@@ -28,10 +28,17 @@ jobs:
           python-version: '3.12'
           cache: pip
 
-      - name: Verify FFmpeg and install Python dependencies
+      - name: Install FFmpeg with bounded Ubuntu package retries
         run: |
-          ffmpeg -version | head -n 1
-          ffprobe -version | head -n 1
+          if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1; then
+            if ! timeout 150 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ffmpeg; then
+              timeout 180 sudo apt-get update -qq
+              timeout 150 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ffmpeg
+            fi
+          fi
+          command -v ffmpeg
+          command -v ffprobe
+          ffmpeg -hide_banner -encoders | grep libx264
           python -m pip install -r requirements-dev.txt
           python - <<'PY'
           from PIL import ImageFont
