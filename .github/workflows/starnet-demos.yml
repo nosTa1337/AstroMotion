@@ -1,4 +1,4 @@
-name: Render genuine StarNet2 demo gallery
+name: Check genuine StarNet2 star flight (2 seconds)
 
 on:
   workflow_dispatch:
@@ -81,25 +81,26 @@ jobs:
           print('Official StarNet2', info['version'], info['build'], 'verified')
           PY
 
-      - name: Render two real StarNet2 videos with new ambient music and GIFs
+      - name: Render only a 2-second Pleiades test, without GIFs
         run: |
-          python -u scripts/render_starnet_examples.py --starnet "$STARNET_EXE" --duration 30 --resolution 1080p --overwrite
+          python -u scripts/render_starnet_examples.py --starnet "$STARNET_EXE" --only pleiades --duration 2 --resolution 720p --no-gif --overwrite
 
       - name: Verify clean layer provenance and encoded streams
         run: |
           python - <<'PYCODE'
           import json, subprocess
           from pathlib import Path
-          for stem in ('orion', 'pleiades'):
-              movie=Path('examples/real')/(stem+'_starnet_demo.mp4')
+          for stem in ('pleiades',):
+              movie=Path('test-renders')/(stem+'_starnet_demo.mp4')
               work=movie.parent/(movie.stem+'_assets')
               qa=json.loads((work/'separation_qa.json').read_text())
               report=json.loads((work/'render_report.json').read_text())
               assert qa['source']=='StarNet2'
               assert qa['checks']['background_error_linear']<2e-7
-              assert report['animation_mode']=='starnet_layers'
+              assert report['animation_mode']=='starnet_starfield'
+              assert report['starfield']['detected_star_particles']>=10
               probed=json.loads(subprocess.check_output(['ffprobe','-v','error','-show_format','-show_streams','-of','json',str(movie)]))
-              assert 29.95<float(probed['format']['duration'])<30.2
+              assert 1.95<float(probed['format']['duration'])<2.2
               assert {'h264','aac'}<={s.get('codec_name') for s in probed['streams']}
           PYCODE
 
@@ -108,12 +109,12 @@ jobs:
       - name: Upload candidate demos and visual checks for review
         uses: actions/upload-artifact@v4
         with:
-          name: starnet2-gallery-for-review
+          name: pleiades-2s-starflight-test
           path: |
-            examples/real/*_starnet_demo.mp4
-            examples/real/*_starnet_preview.gif
-            examples/real/*_assets/visual_review.jpg
-            examples/real/*_assets/separation_qa.json
-            examples/real/*_assets/render_report.json
+            test-renders/*_starnet_demo.mp4
+            test-renders/*_starnet_preview.gif
+            test-renders/*_assets/visual_review.jpg
+            test-renders/*_assets/separation_qa.json
+            test-renders/*_assets/render_report.json
           if-no-files-found: error
           retention-days: 7

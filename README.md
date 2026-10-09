@@ -2,7 +2,7 @@
 
 # AstroMotion
 
-AstroMotion erstellt ruhige **2,5D-Videos aus echten Astrofotos**: StarNet2 trennt die Sterne vom Nebel, anschließend bewegen sich die beiden vollständigen Bildebenen mit leicht unterschiedlichem Zoom. Dazu gibt es frei wählbare Videolängen, nahtlose Loops und lokal erzeugte, zufällige Ambient-Musik.
+AstroMotion erstellt **Videos mit individuellem Sternflug aus echten Astrofotos**: StarNet2 trennt die Sterne vom Nebel; erkannte Sterne bewegen sich anschließend mit eigener perspektivischer Projektion vor dem ruhigen Nebelhintergrund. Dazu gibt es frei wählbare Videolängen, nahtlose Loops und lokal erzeugte, zufällige Ambient-Musik.
 
 ## TL;DR
 
@@ -11,7 +11,7 @@ AstroMotion erstellt ruhige **2,5D-Videos aus echten Astrofotos**: StarNet2 tren
 3. Mit genau diesem Python starten und bei `--starnet` den **vollständigen Pfad zur EXE**, nicht zum Ordner, angeben:
 
 ```powershell
-.\.venv\Scripts\python.exe main.py --input examples\real\pleiades.jpg --starnet "C:\Program Files\StarNet2\bin\starnet2.exe" --config configs\clean_loop.yaml --duration 30 --output Plejaden_video.mp4
+.\.venv\Scripts\python.exe main.py --input examples\real\pleiades.jpg --starnet "C:\Program Files\StarNet2\bin\starnet2.exe" --config configs\immersive_loop.yaml --duration 30 --output Plejaden_video.mp4
 ```
 
 Alternativ: `start_windows.bat --input ...` nutzt ebenfalls `.venv`.
@@ -20,18 +20,20 @@ Alternativ: `start_windows.bat --input ...` nutzt ebenfalls `.venv`.
 
 ## Saubere Pipeline
 
-Die frühere `foreground_cleanup`-Maske, nachträgliche Lochreparatur sowie `starfield.py` und `starprofiles.py` sind entfernt. Es gibt keine umgefärbten Stern-Sprites, künstlichen Nahvorbeiflüge oder Umverteilung von Sternpixeln in den Nebel.
+Die fehlerhafte `foreground_cleanup`-Umverteilung und nachträgliche Lochreparatur bleiben entfernt. `starfield.py` und `starprofiles.py` sind wieder eingebunden, damit einzelne Sterne sichtbar durch den Raum fliegen. Die bisherigen Sternprofile werden zunächst unverändert verwendet; ihre Farbqualität wird getrennt am kurzen Testvideo beurteilt. Zusätzliche Nahvorbeiflüge sind deaktiviert.
 
 - Nur echte StarNet2-Trennung oder ein passendes, bereits mit StarNet2 erzeugtes Starless-Bild; kein OpenCV-Ersatz.
-- Die komplette RGB-Sternebene behält Sternformen, Farben und relative Positionen.
+- Der Sternflug verwendet Positionen und Profile aus dem echten StarNet2-Residuum. Die künstlerische Tiefenverteilung verändert die projizierten Positionen; sie misst keine astronomischen Entfernungen.
 - Hintergrund = kanalweises Minimum von Original und StarNet2-Ausgabe in linearem Licht. Diese Begrenzung ermöglicht eine nichtnegative, rekonstruierbare Sternebene; es ist kein Reparaturfilter.
 - Alle mitgelieferten Presets sind farbneutral: kein Bloom, Glow, Vignette, Twinkle oder automatisches Grading. Manuell konfigurierte Effekte und Autofokus bleiben optional.
-- `clean_loop.yaml`: 30 Sekunden, 1080p/30 FPS, Hintergrundzoom 10 %, Sternzoom 12,5 %, sanfte Rotation und zufällige Ambient-Musik.
-- Perfect Loop: sanftes Annähern **und Zurückfahren** mit periodischer Kamera; die Musik wird am Übergang überblendet. Kein dauerhaft vorwärts laufender Sprite-Flug.
+- `immersive_loop.yaml`: individueller Sternflug, 30 Sekunden, 1080p/30 FPS und zufällige Ambient-Musik. `clean_loop.yaml` bleibt als Alternative mit reiner Ebenenbewegung verfügbar.
+- Perfect Loop: periodischer, vorwärts laufender Sternflug; der Nebelhintergrund fährt sanft vor und zurück. Die Musik wird am Übergang überblendet.
 
-Die alten Dateinamen `immersive_loop.yaml` und `cinematic_intelligence.yaml` funktionieren weiter und verwenden nun ebenfalls die saubere Ebenenanimation. Alte Konfigurationsfelder `foreground_cleanup` und `starfield` werden aus Kompatibilitätsgründen gelesen, aktivieren aber keine entfernten Filter oder Sprites. Bei aktiviertem Legacy-Modus erscheint eine Warnung.
+`immersive_loop.yaml` und `cinematic_intelligence.yaml` aktivieren wieder den Sternflug (`starfield.enabled: true`). `foreground_cleanup` bleibt ein ignoriertes Kompatibilitätsfeld und kann die fehlerhafte Umverteilung nicht wieder aktivieren.
 
 Die Qualität der ursprünglichen StarNet2-Ausgabe bleibt maßgeblich. Bereits dort vorhandene Halos werden nicht künstlich wegretuschiert. Bei auffälligem Abdriften: `motion.star_zoom_extra` reduzieren, bei Bedarf auf `0` (gleiche Zoombewegung).
+
+**Aktueller Prüfstand:** Der Sternflug wurde im Code wiederhergestellt. Seine Bildqualität ist nach der Wiederherstellung noch nicht am echten Video bestätigt. Zuerst ein 2-Sekunden-Test, vollständige Demos erst nach Sichtfreigabe.
 
 Details zu Ursache, Git-History und Prüfung: [CLEAN_PIPELINE_REPORT.md](CLEAN_PIPELINE_REPORT.md).
 
@@ -74,7 +76,7 @@ Python 3.11+, `venv` und FFmpeg/FFprobe installieren (z. B. Ubuntu: `sudo apt in
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python main.py --input examples/real/pleiades.jpg --starnet "/pfad/zu/starnet2" --config configs/clean_loop.yaml --output Plejaden_video.mp4
+python main.py --input examples/real/pleiades.jpg --starnet "/pfad/zu/starnet2" --config configs/immersive_loop.yaml --output Plejaden_video.mp4
 ```
 
 Passendes offizielles StarNet2-Paket für Betriebssystem und Architektur installieren. Falls nötig, dessen ausführbare Datei mit `chmod +x /pfad/zu/starnet2` freigeben. Der aktuelle Fix wurde unter Linux getestet; Windows und macOS wurden hier nicht ausgeführt.
@@ -83,17 +85,17 @@ Passendes offizielles StarNet2-Paket für Betriebssystem und Architektur install
 
 ```bash
 # Passendes, bereits mit StarNet2 erzeugtes Starless verwenden
-python main.py --input foto.tif --starless foto_starless.tif --config configs/clean_loop.yaml --output video.mp4
+python main.py --input foto.tif --starless foto_starless.tif --config configs/immersive_loop.yaml --output video.mp4
 
 # Schnelle 3-Sekunden-Vorschau (720p, 24 FPS)
-python main.py --input foto.jpg --starnet /pfad/zu/starnet2 --config configs/clean_loop.yaml --preview
+python main.py --input foto.jpg --starnet /pfad/zu/starnet2 --config configs/immersive_loop.yaml --preview
 
 # Querformat, längeres Video, eigener Titel
-python main.py --input foto.jpg --starless foto_starless.tif --config configs/clean_loop.yaml --format landscape --duration 45 --title "Plejaden" --subtitle "MESSIER 45" --output m45.mp4
+python main.py --input foto.jpg --starless foto_starless.tif --config configs/immersive_loop.yaml --format landscape --duration 45 --title "Plejaden" --subtitle "MESSIER 45" --output m45.mp4
 
 # Eigene Musik oder keine Musik
-python main.py --input foto.jpg --starless foto_starless.tif --config configs/clean_loop.yaml --audio musik.wav --output video.mp4
-python main.py --input foto.jpg --starless foto_starless.tif --config configs/clean_loop.yaml --music none --output stumm.mp4
+python main.py --input foto.jpg --starless foto_starless.tif --config configs/immersive_loop.yaml --audio musik.wav --output video.mp4
+python main.py --input foto.jpg --starless foto_starless.tif --config configs/immersive_loop.yaml --music none --output stumm.mp4
 ```
 
 Original und Starless müssen exakt dieselbe Ausrichtung und Größe haben. Keine separate Streckung oder Farbbearbeitung nach der Trennung. Verarbeitet werden fertig gestreckte RGB-Bilder. `--format`: vertical/square/landscape; `--resolution`: 720p/1080p/4k. `--loop` und `--no-loop` überschreiben das Preset. `--print-config` zeigt die effektiven Einstellungen.
@@ -108,17 +110,17 @@ Zuerst echte Trennung und Standbilder prüfen, ohne Video zu erzeugen:
 python scripts/render_starnet_examples.py --starnet /pfad/zu/starnet2 --check-only
 ```
 
-Die Ordner `examples/real/<objekt>_starnet_demo_assets` enthalten rohe StarNet-TIFFs, Log, `visual_review.jpg` und `separation_qa.json`. Vor einem neuen Demo-Export besonders die hellen blauen M45-Sterne bei den verschiedenen Kamerapositionen prüfen.
+Standardmäßig wird nur M45 geprüft. Die Ordner `test-renders/<objekt>_starnet_demo_assets` enthalten rohe StarNet-TIFFs, Log, `visual_review.jpg` und `separation_qa.json`. Vor einem neuen Demo-Export besonders die hellen blauen M45-Sterne bei den verschiedenen Kamerapositionen prüfen.
 
 Nach erfolgreicher Sichtprüfung dieselben StarNet-Dateien wiederverwenden. `--reuse-starnet CACHE` erwartet Unterordner `orion/` und `pleiades/` mit jeweils `starnet_input.tif`, `starnet_starless.tif` und `starnet.log`. Das Skript vergleicht den gespeicherten Input pixelweise mit dem aktuellen Foto und protokolliert SHA-256-Prüfsummen. Alternativ neu mit `--starnet` trennen:
 
 ```bash
-python scripts/render_starnet_examples.py --starnet /pfad/zu/starnet2 --overwrite
+python scripts/render_starnet_examples.py --starnet /pfad/zu/starnet2 --duration 2 --only pleiades --no-gif --overwrite
 ```
 
-Optional: `--only pleiades`, `--duration 45`, `--seed 1234`, `--no-gif`. Vor dem Encoding müssen die Rekonstruktions- und Hintergrundprüfungen bestehen. Diese technischen Checks ersetzen die Sichtprüfung nicht.
+Standard: 2 Sekunden, 720p, nur Plejaden, Ausgabe unter `test-renders/`. Die bestehende Galerie bleibt unverändert. Nach erfolgreicher Sichtprüfung vollständige Demos explizit mit `--only all --duration 30 --resolution 1080p --output-dir examples/real --overwrite` erzeugen. Optional: `--seed 1234`, `--no-gif`. Vor dem Encoding müssen die Rekonstruktions- und Hintergrundprüfungen bestehen. Diese technischen Checks ersetzen die Sichtprüfung nicht.
 
-Der manuell gestartete [StarNet2-Workflow](.github/workflows/starnet-demos.yml) lädt das offizielle Modell, testet die Pipeline und stellt Kandidaten als Artefakte bereit. Er veröffentlicht nichts automatisch in der Galerie. Es gibt keine Ersatz-Sterntrennung.
+Der manuell gestartete [StarNet2-Workflow](.github/workflows/starnet-demos.yml) lädt das offizielle Modell, testet die Pipeline und stellt ausschließlich einen 2-Sekunden-Plejaden-Clip als Artefakt bereit. Er veröffentlicht nichts automatisch in der Galerie. Es gibt keine Ersatz-Sterntrennung.
 
 ## Tests und Diagnose
 

@@ -51,16 +51,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--starnet", type=Path, help="Path to licensed official StarNet2 CLI")
     parser.add_argument("--starnet-mode", choices=("modern", "legacy", "auto"), default="modern")
-    parser.add_argument("--config", type=Path, default=ROOT / "configs" / "clean_loop.yaml")
-    parser.add_argument("--duration", type=float, default=30.0)
-    parser.add_argument("--resolution", choices=("720p", "1080p", "4k"), default="1080p")
-    parser.add_argument("--only", choices=("orion", "pleiades"))
+    parser.add_argument("--config", type=Path, default=ROOT / "configs" / "immersive_loop.yaml")
+    parser.add_argument("--duration", type=float, default=2.0)
+    parser.add_argument("--resolution", choices=("720p", "1080p", "4k"), default="720p")
+    parser.add_argument("--only", choices=("orion", "pleiades", "all"), default="pleiades")
     parser.add_argument("--seed", type=int, help="Fixed music seed; defaults to random ambient")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--no-gif", action="store_true")
     parser.add_argument("--check-only", action="store_true", help="Prepare and inspect layers/stills; no video")
     parser.add_argument("--reuse-starnet", type=Path,
                         help="Folder containing <object>/starnet_input.tif, starnet_starless.tif and starnet.log")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "test-renders")
     args = parser.parse_args()
 
     starnet = args.starnet.expanduser().resolve() if args.starnet else None
@@ -68,7 +69,7 @@ def main() -> None:
         parser.error("Provide --starnet EXE or --reuse-starnet with genuine cached StarNet2 output")
     root = ROOT / "examples" / "real"
     for stem, title, subtitle in OBJECTS:
-        if args.only and args.only != stem:
+        if args.only != "all" and args.only != stem:
             continue
         image = root / f"{stem}.jpg"
         if not image.is_file():
@@ -80,10 +81,11 @@ def main() -> None:
             "audio": {"seed": args.seed, "mode": "ambient"},
             "caption": {"enabled": True, "title": title, "subtitle": subtitle},
         })
-        output = root / f"{stem}_starnet_demo.mp4"
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        output = args.output_dir / f"{stem}_starnet_demo.mp4"
         if output.exists() and not args.overwrite and not args.check_only:
             raise FileExistsError(f"{output} exists; pass --overwrite")
-        work = root / (output.stem + "_assets")
+        work = output.parent / (output.stem + "_assets")
         work.mkdir(exist_ok=True)
         original = resize_work(load_image(image), cfg.work_long_edge)
         if args.reuse_starnet:
@@ -116,10 +118,11 @@ def main() -> None:
         render_cfg = replace(cfg, work_long_edge=max(original.shape[:2]))
         report = render(work / "starnet_input.tif", output, render_cfg,
                         work / "starnet_starless.tif", overwrite=args.overwrite)
-        if report.get("animation_mode") != "starnet_layers":
+        expected_mode = "starnet_starfield" if cfg.starfield.enabled else "starnet_layers"
+        if report.get("animation_mode") != expected_mode:
             raise RuntimeError(f"Unexpected animation pipeline for {stem}")
         if not args.no_gif:
-            gif = root / f"{stem}_starnet_preview.gif"
+            gif = output.parent / f"{stem}_starnet_preview.gif"
             make_preview(output, gif, cfg.encoding.ffmpeg)
         print(f"Complete: {output}", flush=True)
 

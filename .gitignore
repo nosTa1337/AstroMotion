@@ -13,3 +13,5 @@ __pycache__/
 
 # Local genuine StarNet2 cache (large inputs/outputs and machine-specific logs)
 /qa/starnet-cache/
+
+/test-renders/

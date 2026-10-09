@@ -1,3 +1,5 @@
+> Nachtrag: Der unten dokumentierte Fix entfernte den individuellen Sternflug zu weitgehend. `starfield.py` und `starprofiles.py` wurden deshalb wiederhergestellt; Cleanup und Lochreparatur bleiben entfernt. Die früheren Bildprüfungen betreffen die Ebenenanimation, nicht den wiederhergestellten Sternflug. Dessen visuelle Freigabe steht noch aus und erfolgt zuerst mit einem 2-Sekunden-M45-Clip.
+
 # Saubere StarNet2-Ebenen – Ursachenanalyse und Prüfung
 
 Stand: 9. Oktober 2026. Ausgangspunkt: `f82e1681e6898ea05a3f6f1d07e48c80c4390231`.

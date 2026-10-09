@@ -35,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--auto-color", action=argparse.BooleanOptionalAction, default=None,
                         help="Dezente, bildabhängige Kontrast-/Sättigungsanpassung")
     parser.add_argument("--depth-mode", choices=("random", "adaptive"),
-                        help="Veraltet; wird beim Ebenenrendering ignoriert")
+                        help="Künstlerische Sterntiefen bei aktiviertem Sternflug: random oder adaptive")
     parser.add_argument("--preview", action="store_true",
                         help="Schnelle 3s-Vorschau mit 720p/24fps und eigenem Dateinamen")
     parser.add_argument("--parallax", type=float)

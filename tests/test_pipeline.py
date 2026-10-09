@@ -302,7 +302,7 @@ def test_complete_streamed_render(pair, tmp_path, audio):
     cfg.encoding.preset = "ultrafast"
     cfg.effects.bloom = cfg.effects.glow = 0
     cfg.audio.mode = audio
-    # Old sprite settings must never reactivate the removed renderer.
+    # Exercise the restored individual star-flight path using synthetic test data.
     cfg.starfield.enabled = audio == "ambient"
     cfg.starfield.photo_profiles = audio == "ambient"
     cfg.starfield.close_passes = 2 if audio == "ambient" else 0
@@ -324,8 +324,9 @@ def test_complete_streamed_render(pair, tmp_path, audio):
         assert type(report["config"]["audio"]["seed"]) is int
     assert progress == list(range(1, 7))
     streams = report["probe"]["streams"]
-    assert report["animation_mode"] == "starnet_layers"
-    assert "starfield" not in report
+    assert report["animation_mode"] == ("starnet_starfield" if cfg.starfield.enabled else "starnet_layers")
+    if cfg.starfield.enabled:
+        assert report["starfield"]["detected_star_particles"] > 0
     assert len(streams) == (1 if audio == "none" else 2)
     assert float(streams[0]["duration"]) == pytest.approx(.25)
     # Decode every video frame, not just the container metadata.

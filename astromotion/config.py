@@ -75,7 +75,7 @@ class Encoding:
 
 @dataclass
 class Starfield:
-    """Legacy config compatibility only; sprite rendering has been removed."""
+    """Perspective animation of star cores measured in the StarNet2 residual."""
     enabled: bool = False
     count: int = 4500
     seed: int = 2026
