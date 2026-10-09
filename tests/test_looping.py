@@ -16,6 +16,7 @@ from astromotion.looping import camera_phase, prepare_audio_loop, splice_audio_l
 from astromotion.music import synthesize_ambient
 from astromotion.pipeline import render
 from astromotion.separation import Layers, composite
+from astromotion.starfield import PerspectiveStars
 
 
 def scene():
@@ -25,6 +26,29 @@ def scene():
         for x in range(10, 152, 12):
             stars[y, x] = [.9, .85, .8]
     return Layers(background, stars, "screen", {})
+
+
+@pytest.mark.parametrize("cycles", [1, 2, 5])
+def test_periodic_star_projection_shutter_and_forward_velocity(cycles):
+    layers = scene()
+    animator = Animator(layers, (160, 120), Motion())
+    stars = PerspectiveStars(layers, animator, Starfield(photo_profiles=True, close_passes=6), 30,
+                             Loop(enabled=True, star_cycles=cycles))
+    for phase in [0, .12, .39, .82]:
+        xy, z, _, _ = stars.project(phase)
+        repeat_xy, repeat_z, _, _ = stars.project(phase + 1)
+        np.testing.assert_allclose(xy, repeat_xy, atol=1e-4)
+        np.testing.assert_allclose(z, repeat_z, atol=1e-6)
+    first = stars.composite(layers.nebula, 0, 30)
+    last_endpoint = stars.composite(layers.nebula, 1, 30)
+    np.testing.assert_allclose(first, last_endpoint, atol=1e-5)
+    # Depth always approaches, even through the end/start interval; near-plane
+    # wraps are the only exceptions and are faded out by the renderer.
+    eps = .0001
+    _, before, _, _ = stars.project(1 - eps)
+    _, after, _, _ = stars.project(0)
+    dz = (after - before + stars.cfg.far - stars.cfg.near) % (stars.cfg.far - stars.cfg.near)
+    np.testing.assert_allclose(dz, (stars.cfg.far - stars.cfg.near) * (1 - cycles * eps), atol=2e-6)
 
 
 def test_periodic_camera_and_twinkle_cover_source_without_borders():

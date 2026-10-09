@@ -66,7 +66,7 @@ def test_validation_and_new_profile():
     root = Path(__file__).resolve().parents[1]
     cfg = load_config(root / "configs/cinematic_intelligence.yaml")
     assert not cfg.cinematic.auto_color and not cfg.cinematic.auto_focus
-    assert not cfg.starfield.enabled
+    assert cfg.starfield.enabled
     for value in (-.1, 1.1):
         with pytest.raises(ValueError):
             load_config(overrides={"cinematic": {"focus_strength": value}})

@@ -43,7 +43,7 @@ def test_shipped_presets_disable_special_effects_and_keep_visible_loop_motion():
     root = Path(__file__).resolve().parents[1]
     for path in (root/'configs').glob('*.yaml'):
         cfg = load_config(path)
-        assert not cfg.starfield.enabled and not cfg.separation.foreground_cleanup
+        assert not cfg.separation.foreground_cleanup
         assert not cfg.cinematic.auto_color
         assert cfg.effects.bloom == cfg.effects.glow == cfg.effects.grade == 0
         assert cfg.effects.contrast == cfg.effects.saturation == 1

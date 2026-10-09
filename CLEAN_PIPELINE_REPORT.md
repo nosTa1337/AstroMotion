@@ -1,3 +1,5 @@
+> Nachtrag: Der unten dokumentierte Fix entfernte den individuellen Sternflug zu weitgehend. `starfield.py` und `starprofiles.py` wurden deshalb wiederhergestellt; Cleanup und Lochreparatur bleiben entfernt. Die früheren Bildprüfungen betreffen die Ebenenanimation, nicht den wiederhergestellten Sternflug. Der Projektbetreiber hat dessen echten 2-Sekunden-M45-Clip inzwischen visuell freigegeben; danach wurde das Rendering der 30-Sekunden-Demos über GitHub Actions autorisiert. Der [Actions-Lauf 37927064436](https://github.com/nosTa1337/AstroMotion/actions/runs/37927064436) hat beide Demos erfolgreich gerendert und in Commit `f5dcf5b` im PR-Zweig gespeichert. StarNet2-Herkunft, aktiver Sternflug, 30 Sekunden, 1080 × 1920, 30 FPS, 900 Frames sowie die vollständige Video- und GIF-Dekodierung wurden geprüft. Der Projektbetreiber hat das aktuelle Animationsergebnis anschließend visuell freigegeben. Der folgende Bericht beschreibt weiterhin den historischen ersten Fix.
+
 # Saubere StarNet2-Ebenen – Ursachenanalyse und Prüfung
 
 Stand: 9. Oktober 2026. Ausgangspunkt: `f82e1681e6898ea05a3f6f1d07e48c80c4390231`.

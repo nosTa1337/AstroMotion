@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 if not exist ".venv\Scripts\python.exe" (
-  echo Zuerst setup_windows.bat ausfuehren.
+  echo Zuerst setup.bat ausfuehren.
   pause
   exit /b 1
 )

@@ -21,6 +21,7 @@ from .intelligence import resolve_cinematic
 from .music import resolve_audio_seed, synthesize_ambient
 from .looping import camera_phase, prepare_audio_loop
 from .separation import extract_layers, run_starnet
+from .starfield import PerspectiveStars
 
 LOG = logging.getLogger(__name__)
 Progress = Callable[[int, int, float], None]
@@ -34,8 +35,6 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
     Diagnostic files live beside the output under <stem>_assets/.
     """
     cfg.validate()
-    if cfg.starfield.enabled:
-        LOG.warning("Der Sprite-Sternflug wurde entfernt; es werden vollständige StarNet2-Ebenen animiert.")
     if cfg.audio.mode == "ambient":
         cfg = replace(cfg, audio=resolve_audio_seed(cfg.audio))
     input_path, output = input_path.resolve(), output.resolve()
@@ -98,6 +97,7 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
             synthesize_ambient(audio_path, cfg.actual_duration, cfg.audio)
         animator = Animator(layers, cfg.size, effective_motion)
         processor = EffectProcessor(effective_effects, cfg.size, layers.blend)
+        particles = PerspectiveStars(layers, animator, cfg.starfield, cfg.fps, cfg.loop) if cfg.starfield.enabled else None
         caption = CaptionOverlay(cfg.caption, cfg.size) if cfg.caption.enabled else None
         if animator.base_scale > 1:
             LOG.warning("Ausschnitt wird %.2fx hochskaliert. Für mehr Details ein größeres Foto/work_long_edge verwenden.",
@@ -116,7 +116,11 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
                 camera_t = camera_phase(t) if cfg.loop.enabled else t
                 twinkle_time = 2 * np.pi * t / 1.4 if cfg.loop.enabled else i / cfg.fps
                 nebula, stars = animator.frame_layers(camera_t, twinkle_time, cfg.effects.twinkle)
+                if particles:
+                    stars = stars * cfg.starfield.farfield_gain
                 rgb = processor.apply(nebula, stars)
+                if particles:
+                    rgb = particles.composite(rgb, t, cfg.actual_duration)
                 if caption:
                     rgb = caption.apply(rgb, i / cfg.fps, cfg.actual_duration if cfg.loop.enabled else None)
                 frame = np.clip(np.floor(rgb * 255 + .5 + dither), 0, 255).astype(np.uint8)
@@ -129,7 +133,9 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
                   "elapsed_seconds": time.monotonic() - start, "probe": encoder.info,
                   "cinematic_intelligence": cinematic_metrics,
                   "layer_encoding": "sRGB PNG; decode sRGB to linear then use separation.blend"}
-        report["animation_mode"] = "starnet_layers"
+        report["animation_mode"] = "starnet_starfield" if particles else "starnet_layers"
+        if particles:
+            report["starfield"] = particles.stats
         (workspace / "render_report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
         LOG.info("Fertig: %s (%.1f Sekunden).", output, report["elapsed_seconds"])
         return report

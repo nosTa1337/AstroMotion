@@ -11,6 +11,7 @@ from .effects import EffectProcessor
 from .imaging import to_linear, to_srgb
 from .looping import camera_phase
 from .separation import Layers
+from .starfield import PerspectiveStars
 
 
 def check_layers(original, starless, layers: Layers) -> dict[str, float]:
@@ -30,10 +31,16 @@ def save_contact_sheet(path: Path, original, starless, layers: Layers, cfg: Conf
     """Full images plus the brightest stellar regions at three camera phases."""
     camera = Animator(layers, cfg.size, cfg.motion)
     processor = EffectProcessor(cfg.effects, cfg.size, layers.blend)
-    frames = [processor.apply(*camera.frame_layers(camera_phase(t) if cfg.loop.enabled else t, 0))
-              for t in (0., .25, .5)]
+    particles = PerspectiveStars(layers, camera, cfg.starfield, cfg.fps, cfg.loop) if cfg.starfield.enabled else None
+    frames = []
+    for t in (0., .25, .5):
+        nebula, stars = camera.frame_layers(camera_phase(t) if cfg.loop.enabled else t, 0)
+        rgb = processor.apply(nebula, stars * cfg.starfield.farfield_gain if particles else stars)
+        frames.append(particles.composite(rgb, t, cfg.actual_duration) if particles else rgb)
     images = [original, starless, to_srgb(layers.nebula), *frames]
     names = ['Original', 'StarNet2 raw', 'Background', 'Phase 0', 'Phase .25', 'Phase .5']
+    if particles:
+        names[3:] = [name + " (star flight)" for name in names[3:]]
     canvas = Image.new('RGB', (1500, 850), '#16191e'); draw = ImageDraw.Draw(canvas)
     # Rank integrated stellar flux, not single clipped/noisy pixels. Exclude
     # borders so the tracked crops stay visible through the full camera path.
@@ -50,6 +57,8 @@ def save_contact_sheet(path: Path, original, starless, layers: Layers, cfg: Conf
         im = Image.fromarray(np.uint8(np.clip(array, 0, 1)*255))
         thumb=im.copy(); thumb.thumbnail((245, 400)); canvas.paste(thumb, (col*250,25)); draw.text((col*250+5,5),name)
         for row, (x, y) in enumerate(centers):
+            if col >= 3 and particles:
+                continue  # inspect individual moving stars in the short video
             if col >= 3:
                 t = (0., .25, .5)[col-3]
                 x,y = camera.matrix(camera_phase(t) if cfg.loop.enabled else t, stars=True) @ [x,y,1]

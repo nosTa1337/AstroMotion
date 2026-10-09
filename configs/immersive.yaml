@@ -1,16 +1,16 @@
-# Clean StarNet2 layers; no cleanup, sprites or automatic color changes.
+# Individual star flight; no foreground cleanup or background repair.
 preset: cinematic
 format: vertical
 resolution: 1080p
 duration: 12.0
 fps: 30
 motion:
-  zoom: 0.1
-  rotation_deg: 0.7
-  pan_x: 0.006
-  pan_y: -0.004
-  parallax: 1.0
-  star_zoom_extra: 0.025
+  zoom: 0.0
+  rotation_deg: 0.0
+  pan_x: 0.0
+  pan_y: 0.0
+  parallax: 0.0
+  star_zoom_extra: 0.0
   star_rotation_deg: 0.0
   overscan: 1.02
 effects:
@@ -27,3 +27,18 @@ audio:
 separation:
   extra_args:
   - --upsample
+starfield:
+  enabled: true
+  count: 4500
+  seed: 2026
+  near: 0.16
+  far: 3.8
+  travel: 2.4
+  drift_x: 0.12
+  drift_y: -0.035
+  rotation_deg: 4.0
+  farfield_gain: 0.18
+  foreground_gain: 1.15
+  max_radius: 12.0
+  shutter: 0.6
+  close_passes: 0
