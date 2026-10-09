@@ -76,7 +76,7 @@ python main.py --input examples/deep_sky.png --starless examples/deep_sky_starle
 
 ## Eigene Aufnahmen und Beispielvideos
 
-**Seestar S50 Pro + AstroWizard · eigene Aufnahmen von Philipp / nosTa1337 – dürfen verwendet werden.** Die Originalfotos sind unverändert im Repository abgelegt. Für die daraus erzeugten Videos und GIF-Vorschauen gilt dieselbe Erlaubnis; Details in [examples/real/README.md](examples/real/README.md).
+**Seestar S50 Pro + AstroWizard · eigene Aufnahmen von mir dürfen verwendet werden.** Die Originalfotos sind unverändert im Repository abgelegt. Für die daraus erzeugten Videos und GIF-Vorschauen gilt dieselbe Erlaubnis; Details in [examples/real/README.md](examples/real/README.md).
 
 | Orionnebel · M42 | Plejaden · M45 |
 |---|---|
