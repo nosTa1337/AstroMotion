@@ -12,13 +12,15 @@ Quellenangabe ist willkommen.
 **1080 × 1920, 30 FPS, H.264/AAC.** Die Sternentrennung erfolgte mit
 der echten, separat installierten **StarNet2-CLI**, nicht mit einer
 OpenCV-Approximation. Sterne und Nebel bewegen sich unabhängig;
-die Sternentfernungen sind künstlerische Werte. Die Musik wurde
+es werden die vollständigen fotografischen RGB-Ebenen animiert. Die Musik wurde
 lokal synthetisiert, GIFs bleiben stumm.
 
-Mit offizieller StarNet2-CLI und gültiger Lizenz neu rendern:
+Aktueller Stand: saubere Ebenenanimation ohne Cleanup, Lochfilter oder Stern-Sprites. Die Demos verwenden protokollierte echte StarNet2-Ausgaben; siehe [Prüfbericht](../../CLEAN_PIPELINE_REPORT.md).
+
+Mit offizieller StarNet2-CLI und gültiger Lizenz zunächst die Ebenen prüfen:
 
 ```bash
-python scripts/render_starnet_examples.py --starnet "/pfad/zu/starnet2" --overwrite
+python scripts/render_starnet_examples.py --starnet "/pfad/zu/starnet2" --check-only
 ```
 
 Optional `--only pleiades`, `--duration 45`, `--seed 1234`.

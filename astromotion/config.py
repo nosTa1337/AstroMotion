@@ -27,14 +27,14 @@ class Motion:
 
 @dataclass
 class Effects:
-    bloom: float = 0.09
-    glow: float = 0.025
+    bloom: float = 0.0
+    glow: float = 0.0
     bloom_radius: float = 7.0  # pixels at 1080-short-edge; scales with resolution
     glow_radius: float = 24.0
-    vignette: float = 0.12
-    contrast: float = 1.015
-    saturation: float = 1.035
-    grade: float = 0.025
+    vignette: float = 0.0
+    contrast: float = 1.0
+    saturation: float = 1.0
+    grade: float = 0.0
     twinkle: float = 0.0
 
 
@@ -47,7 +47,7 @@ class Separation:
     extra_args: list[str] = field(default_factory=list)
     blend: str = "screen"  # screen in linear light, or additive
     max_negative_error: float = 0.035  # mean positive starless-original discrepancy
-    foreground_cleanup: bool = False  # keep highly chromatic neural residuals in the background
+    foreground_cleanup: bool = False  # deprecated, accepted but ignored
 
 
 @dataclass
@@ -75,6 +75,7 @@ class Encoding:
 
 @dataclass
 class Starfield:
+    """Legacy config compatibility only; sprite rendering has been removed."""
     enabled: bool = False
     count: int = 4500
     seed: int = 2026
@@ -249,10 +250,10 @@ PRESETS: dict[str, dict[str, Any]] = {
     "cinematic": {},
     "epic": {"motion": {"zoom": .10, "rotation_deg": 3.2, "pan_x": .035,
                          "pan_y": -.024, "parallax": 1.5, "star_zoom_extra": .055},
-             "effects": {"bloom": .16, "glow": .045, "vignette": .16}},
+             "effects": {}},
     "calm": {"motion": {"zoom": .03, "rotation_deg": .65, "pan_x": .008,
                          "pan_y": -.005, "parallax": .6, "star_zoom_extra": .025},
-             "effects": {"bloom": .045, "glow": .015, "vignette": .08, "grade": .01}},
+             "effects": {}},
 }
 
 

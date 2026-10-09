@@ -1,50 +1,32 @@
-# Fotobasierte Sternformen; sechs dezente nahe Vorbeiflüge; leise Glocken/Klangflächen.
+# Clean StarNet2 layers; no cleanup, sprites or automatic color changes.
 preset: cinematic
 format: vertical
 resolution: 1080p
 duration: 15.0
 fps: 30
 motion:
-  zoom: 0.0
-  rotation_deg: 0.0
-  pan_x: 0.0
-  pan_y: 0.0
-  parallax: 0.0
-  star_zoom_extra: 0.0
+  zoom: 0.1
+  rotation_deg: 0.7
+  pan_x: 0.006
+  pan_y: -0.004
+  parallax: 1.0
+  star_zoom_extra: 0.025
   star_rotation_deg: 0.0
   overscan: 1.02
 effects:
-  bloom: 0.035
-  glow: 0.01
-  vignette: 0.05
+  bloom: 0.0
+  glow: 0.0
+  vignette: 0.0
   contrast: 1.0
   saturation: 1.0
   grade: 0.0
+  twinkle: 0.0
 audio:
   mode: ambient
-  seed: null  # neue Ambient-Variante bei jedem Lauf
+  seed: null
   harmony: dusk
   transpose: 2
   accents: 0.45
 separation:
   extra_args:
   - --upsample
-  foreground_cleanup: true
-starfield:
-  enabled: true
-  count: 4500
-  seed: 2027
-  near: 0.16
-  far: 3.8
-  travel: 2.85
-  drift_x: 0.12
-  drift_y: -0.035
-  rotation_deg: 4.75
-  farfield_gain: 0.18
-  foreground_gain: 1.15
-  max_radius: 12.0
-  shutter: 0.6
-  photo_profiles: true
-  close_passes: 6
-  close_scale: 1.6
-  close_blur: 2.4

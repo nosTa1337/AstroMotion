@@ -6,12 +6,10 @@ import logging
 from pathlib import Path
 import subprocess
 
-import cv2
 import numpy as np
 
 from .config import Separation
 from .imaging import FloatImage, load_image, save_tiff, to_linear
-from .starless_repair import repair_bright_star_holes
 
 LOG = logging.getLogger(__name__)
 
@@ -47,31 +45,22 @@ def extract_layers(original: FloatImage, starless: FloatImage, cfg: Separation) 
     if negative > .001:
         LOG.warning("Starless liegt lokal über dem Original (mittlere Differenz %.5f). "
                     "Diese Werte werden für eine rekonstruierbare Ebene begrenzt; Ebenen visuell prüfen.", negative)
-    repaired_holes = 0
     if cfg.foreground_cleanup:
-        starless, repaired_holes = repair_bright_star_holes(original, starless)
-        if repaired_holes:
-            LOG.info("Reparierte farbige Sternloch-Artefakte: %d", repaired_holes)
+        LOG.warning("foreground_cleanup wurde entfernt und wird ignoriert; keine Reparaturfilter.")
     orig = to_linear(original)
     base = np.minimum(to_linear(starless), orig)
     difference = np.maximum(orig - base, 0)
     if float(difference.max()) < 1e-5:
         raise ValueError("Keine separate Sternebene gefunden. Ist das sternenlose Bild das Original?")
     stars = difference / np.maximum(1 - base, 1e-6) if cfg.blend == "screen" else difference
-    # Never reassign selected star residuals into the nebula after computing
-    # the exact inverse-screen decomposition. The former RGB-neutrality mask
-    # removed arbitrary channels of blue stars independently, then solved
-    # (orig - stars)/(1 - stars), creating neon donuts/black pits. It caused
-    # severe artifacts in real Seestar Pleiades even though StarNet2's raw
-    # starless image was clean. Any small repairs happen BEFORE this split;
-    # otherwise preserve StarNet2's background with only the physical
-    # per-channel min(original, starless) bound.
+    # Keep the measured RGB residual intact: no masks, channel normalization,
+    # inpainting, or redistribution into the StarNet2 background. The minimum
+    # above is only the non-negative decomposition bound, not a repair filter.
     layers = Layers(base, np.clip(stars, 0, 1), cfg.blend, {"negative_mean_srgb": negative})
     layers.diagnostics["reconstruction_max_error_linear"] = float(np.abs(layers.composite() - orig).max())
     layers.diagnostics["positive_residual_energy_fraction"] = float(difference.sum() / max(float(orig.sum()), 1e-6))
-    if cfg.foreground_cleanup:
-        layers.diagnostics["foreground_cleanup_enabled"] = 1.0
-        layers.diagnostics["bright_star_holes_repaired"] = float(repaired_holes)
+    layers.diagnostics["foreground_cleanup_enabled"] = 0.0
+    layers.diagnostics["background_clamp_max_linear"] = float(np.max(to_linear(starless) - base))
     LOG.info("Ebenen rekonstruiert: max. linearer Fehler %.8f", layers.diagnostics["reconstruction_max_error_linear"])
     return layers
 

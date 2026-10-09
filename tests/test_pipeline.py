@@ -302,8 +302,7 @@ def test_complete_streamed_render(pair, tmp_path, audio):
     cfg.encoding.preset = "ultrafast"
     cfg.effects.bloom = cfg.effects.glow = 0
     cfg.audio.mode = audio
-    # Exercise the perspective path with generated synthetic stars, not model
-    # output. Other audio cases continue to cover the original layer camera.
+    # Old sprite settings must never reactivate the removed renderer.
     cfg.starfield.enabled = audio == "ambient"
     cfg.starfield.photo_profiles = audio == "ambient"
     cfg.starfield.close_passes = 2 if audio == "ambient" else 0
@@ -325,8 +324,8 @@ def test_complete_streamed_render(pair, tmp_path, audio):
         assert type(report["config"]["audio"]["seed"]) is int
     assert progress == list(range(1, 7))
     streams = report["probe"]["streams"]
-    if cfg.starfield.enabled:
-        assert report["starfield"]["detected_star_particles"] > 0
+    assert report["animation_mode"] == "starnet_layers"
+    assert "starfield" not in report
     assert len(streams) == (1 if audio == "none" else 2)
     assert float(streams[0]["duration"]) == pytest.approx(.25)
     # Decode every video frame, not just the container metadata.
