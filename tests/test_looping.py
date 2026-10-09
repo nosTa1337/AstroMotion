@@ -137,6 +137,7 @@ def test_loop_cli_defaults_and_validation(capsys):
 
 
 @pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="FFmpeg fehlt")
+@pytest.mark.video_render
 def test_complete_loop_render_with_caption_twinkle_music(tmp_path):
     layers = scene()
     original, starless = tmp_path / "input.png", tmp_path / "starless.png"
