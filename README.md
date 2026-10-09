@@ -24,7 +24,7 @@ Dauer frei wählbar: `--duration 45`. Zufällige Ambient-Musik ist Standard;
 
 ## Demos mit echter StarNet2-Sterntrennung
 
-Die Fotos stammen von **Philipp / nosTa1337**, aufgenommen mit **Seestar S50 Pro** und bearbeitet mit **AstroWizard**. Der Projektbetreiber hat nach eigener Mitteilung die Freigabe für StarNet2-Verarbeitung zu Demozwecken erhalten. StarNet2 ist separat lizenziert; Software und Gewichte liegen nicht im Repository.
+Die Fotos stammen von mir, aufgenommen mit **Seestar S50 Pro** und bearbeitet mit **AstroWizard**. Der Projektbetreiber hat nach eigener Mitteilung die Freigabe für StarNet2-Verarbeitung zu Demozwecken erhalten. StarNet2 ist separat lizenziert; Software und Gewichte liegen nicht im Repository.
 
 | Orionnebel · M42 | Plejaden · M45 |
 |---|---|
