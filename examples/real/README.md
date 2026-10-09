@@ -9,14 +9,16 @@ Die Erlaubnis umfasst die hier enthaltenen Originalfotos, die daraus erzeugten D
 | Orionnebel / Messier 42 | [orion.jpg](orion.jpg) | [orion_demo.mp4](orion_demo.mp4) | [orion_preview.gif](orion_preview.gif) |
 | Plejaden / Messier 45 | [pleiades.jpg](pleiades.jpg) | [pleiades_demo.mp4](pleiades_demo.mp4) | [pleiades_preview.gif](pleiades_preview.gif) |
 
-Die Fotos wurden unverändert aus den bereitgestellten JPEGs kopiert. Die 30-Sekunden-Videos zeigen eine sanfte 2D-Kamerafahrt mit Beschriftung: 720 × 1280, 30 FPS, H.264, AAC-Stereo. Es gibt keine separate Sternebene und keinen unabhängigen Sternflug. StarNet wurde nicht verwendet. Farben werden nicht automatisch korrigiert; Grading, Sättigungsanhebung, Bloom, Glow und Vignette sind deaktiviert.
+Die Fotos wurden unverändert aus den bereitgestellten JPEGs kopiert. Die Videos zeigen neben Zoom, Rotation und Beschriftung eine **unabhängige perspektivische Sternbewegung**. Dazu werden kompakte Lichtpunkte direkt aus den eigenen Fotos geschätzt und ihre kleinen Bildbereiche lokal aufgefüllt (OpenCV-Inpainting). Diese **künstlerische Demo-Näherung ist keine verlässliche Sternentfernung** und kann in besonders hellen Nebelbereichen Sternkerne verpassen bzw. Bildartefakte erzeugen. StarNet und dessen Modelle werden **nicht** verwendet. Für hochwertige eigene Videos empfiehlt sich das Hauptprogramm mit einem echten Starless-Bild. Farben werden nicht automatisch korrigiert; Grading, Sättigungsanhebung, Bloom, Glow und Vignette sind weiterhin deaktiviert.
 
 Im Projektordner bei aktivierter Python-Umgebung:
 
 ```bash
 python scripts/render_photo_demo.py --overwrite
+# Nur Orion erneut rendern:
+python scripts/render_photo_demo.py --only orion --overwrite
 ```
 
-Musik variiert zufällig bei jedem Lauf. Mit `--seed ZAHL` lässt sich eine Variante erneut erzeugen. Die hier enthaltenen Videos verwenden Seed **629488976** für Orion; **690608432** für die Plejaden. Die Render-Berichte und WAVs entstehen lokal in den ignorierten `*_assets`-Ordnern. Einstellungen: [photo_demo.yaml](../../configs/photo_demo.yaml).
+Musik variiert zufällig bei jedem Lauf. Mit `--seed ZAHL` lässt sich eine Variante erneut erzeugen. Die aktuell versionierten MP4/GIF-Dateien wurden mit den angegebenen Seeds erstellt; nach erneutem Rendern werden neue Seeds in den lokalen Render-Berichten festgehalten. Die Render-Berichte und WAVs entstehen lokal in den ignorierten `*_assets`-Ordnern. Einstellungen: [photo_demo.yaml](../../configs/photo_demo.yaml).
 
-Die GIF-Vorschauen enthalten denselben vollständigen 30-Sekunden-Bildzyklus in kleiner Auflösung ohne Ton. In der Haupt-README sind sie mit den MP4s verlinkt. Große neue Videos besser außerhalb der Git-Historie hosten, etwa in GitHub Releases oder bei YouTube/Vimeo.
+Mit dem Demo-Render-Skript werden die GIFs automatisch zusammen mit den MP4s neu erzeugt (8 FPS, 280 Pixel Breite, ohne Ton). Die GIF-Vorschauen enthalten denselben vollständigen 30-Sekunden-Bildzyklus in kleiner Auflösung ohne Ton. In der Haupt-README sind sie mit den MP4s verlinkt. Große neue Videos besser außerhalb der Git-Historie hosten, etwa in GitHub Releases oder bei YouTube/Vimeo.
