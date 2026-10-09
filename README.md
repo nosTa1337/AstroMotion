@@ -74,8 +74,18 @@ Die folgenden Optionen an den Startbefehl anhängen:
 | Bildrate | `--fps 24`, `30` oder `60` |
 | Dieselbe Musikvariante wiederholen | `--seed 1234` |
 | Eigene Musik / stumm | `--audio "musik.wav"` / `--music none` |
+| Objektname einblenden | `--title "Plejaden"` |
+| Zweite Textzeile ergänzen | `--subtitle "MESSIER 45"` |
 | Loop ausschalten | `--no-loop` |
 | Bestehende Ausgabedatei ersetzen | `--overwrite` |
+
+**Optionale Texteinblendung:** `--title` aktiviert die Beschriftung, `--subtitle` ergänzt eine zweite Zeile. Zum Beispiel an den Startbefehl anhängen:
+
+```powershell
+--title "Plejaden" --subtitle "MESSIER 45"
+```
+
+Ohne diese Optionen bleibt die Texteinblendung im empfohlenen Setup deaktiviert.
 
 **Tempo im Loop:** Bei gleicher Konfiguration verteilt sich die Bewegung auf die Videolänge. 45 Sekunden wirken langsamer als 30 Sekunden; ein 2-Sekunden-Test komprimiert den gesamten Flug. `--speed` steuert die Hintergrundbewegung und ist kein allgemeiner Tempo-Regler für den Sternflug.
 
