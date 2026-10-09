@@ -333,7 +333,10 @@ def test_complete_streamed_render(pair, tmp_path, audio):
     assert not list(tmp_path.glob("*.partial.mp4"))
 
 
-def test_no_silent_fallback_or_partial_output(tmp_path):
+def test_no_silent_fallback_or_partial_output(tmp_path, monkeypatch):
+    # This test checks the missing-starless preflight and never starts an encoder.
+    # CI intentionally does not install FFmpeg or generate any video.
+    monkeypatch.setattr("astromotion.pipeline.resolve_binary", lambda command: command)
     with pytest.raises(ValueError, match="zuverlässige"):
         render(tmp_path / "input.png", tmp_path / "out.mp4", Config())
     assert not (tmp_path / "out.mp4").exists()
