@@ -4,155 +4,49 @@
 
 # AstroMotion
 
-**AstroMotion v1.2** verwandelt fertig bearbeitete Astrofotos in ruhige, cinematische
-Deep-Sky-Videos mit echtem 2,5D-Sternflug, sanftem Nebelzoom, optionaler
-Sternrotation, eigener Ambient-Musik und nahtlosen Loops. Neu sind
-**Cinematic Intelligence** (automatischer Kamerafokus, vorsichtige
-bildabhängige Farbkorrektur, adaptiver Sternflug) und eine 3-Sekunden-Vorschau.
+**AstroMotion v1.2** erstellt cinematische Deep-Sky-Videos aus fertig bearbeiteten Astrofotos. Sterne und Nebel werden nach **echter StarNet2-Sterntrennung** unabhängig animiert, mit perspektivischem Sternflug, sanfter Rotation, Ambient-Musik und nahtlosem Loop. **Cinematic Intelligence** ergänzt intelligenten Kamerafokus, vorsichtige Farbanpassung und adaptive künstlerische Sterntiefen.
 
-**Für den hochwertigen Sternflug wird eine echte Sterntrennung benötigt:**
-entweder die separat installierte **StarNet2-CLI** oder ein passendes,
-bereits vorhandenes **Starless-Bild**. StarNet2 wird aus Lizenzgründen nicht
-mitgeliefert; Nutzer installieren es selbst und akzeptieren dessen Bedingungen.
-Ein OpenCV-Demomodus ohne StarNet existiert nur als eingeschränkte Alternative.
-
-**Keine Cloud, keine API und kein Rendern über GitHub Actions:** AstroMotion
-läuft mit Python 3.11+ (empfohlen 3.12), OpenCV, NumPy und lokal
-installiertem FFmpeg unter Windows, Linux und macOS.
-**GitHub Actions prüft ausschließlich den Code** (Syntax, Konfiguration,
-Unit-Tests). Tests, die Videos erzeugen, sind mit `video_render`
-markiert und werden in der CI ausdrücklich ausgelassen. GIFs und MP4s
-werden weder erstellt noch ersetzt oder hochgeladen. Alle Renderings
-erfolgen weiterhin lokal.
-
-[![Code-Tests (ohne Videorendering)](https://github.com/nosTa1337/AstroMotion/actions/workflows/code-checks.yml/badge.svg)](https://github.com/nosTa1337/AstroMotion/actions/workflows/code-checks.yml)
+**Keine approximative OpenCV-Sterntrennung und keine künstlichen Demo-Sterne.** Benötigt wird die separat installierte **StarNet2-CLI** oder eine passende, bereits mit StarNet erzeugte Starless-Datei. Die Sternentfernungen sind künstlerisch und keine astrophysikalische Messung. Python 3.11+ (3.12 empfohlen), OpenCV, NumPy, FFmpeg; Windows, Linux und macOS.
 
 ## TL;DR – schnell zum ersten Video
 
-**Demo ausprobieren:** Betriebssystem aufklappen, Schritte ausführen, fertig. Für die synthetische Demo brauchst du **kein StarNet**.
-
-<details>
-<summary><strong>Windows</strong></summary>
-
-1. [Repository herunterladen](https://github.com/nosTa1337/AstroMotion/archive/refs/heads/main.zip) und entpacken.
-2. **Python 3.12** und **FFmpeg/FFprobe mit libx264** installieren; Python Launcher und FFmpeg in PATH verfügbar machen.
-3. Im Projektordner nacheinander doppelklicken:
-
-```text
-setup_windows.bat
-render_demo_windows.bat
-```
-
-</details>
-
-<details>
-<summary><strong>Linux (Ubuntu / Debian)</strong></summary>
-
-Voraussetzung: `python3 --version` zeigt Python **3.11+**, empfohlen 3.12.
+1. **Direkt anschauen:** [Orionnebel-Video](examples/real/orion_starnet_demo.mp4) oder [Plejaden-Video](examples/real/pleiades_starnet_demo.mp4).
+2. **Installieren:** Python 3.12, FFmpeg und die offizielle [StarNet2-CLI](https://starnetastro.com/cli-tools/starnet/) (Lizenz selbst akzeptieren). Windows: `setup_windows.bat`; Linux/macOS: [Einrichtung](#1-einrichtung).
+3. **Eigenes Foto rendern** (Pfad zu StarNet2 anpassen):
 
 ```bash
-sudo apt update
-sudo apt install python3 python3-venv python3-pip git ffmpeg
-git clone https://github.com/nosTa1337/AstroMotion.git
-cd AstroMotion
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python scripts/create_demo.py
-python main.py --input examples/deep_sky.png --starless examples/deep_sky_starless.png --config configs/immersive_loop.yaml --resolution 720p --duration 30 --output examples/demo_loop.mp4
+python main.py --input Orion.jpg --starnet "/pfad/zu/starnet2" --config configs/cinematic_intelligence.yaml --duration 30 --output Orion_video.mp4
 ```
 
-</details>
+**Vorhandenes echtes Starless:** `--starless Orion_starless.tif` statt `--starnet`.
+Dauer frei wählbar: `--duration 45`. Zufällige Ambient-Musik ist Standard;
+`--seed 1234` fixiert die Variante. Zum Ersetzen eines bestehenden Exports `--overwrite` setzen.
 
-<details>
-<summary><strong>macOS (Intel / Apple Silicon)</strong></summary>
+## Demos mit echter StarNet2-Sterntrennung
 
-Voraussetzung: [Homebrew](https://brew.sh/) ist installiert und in PATH.
-
-```bash
-brew install python@3.12 ffmpeg git
-git clone https://github.com/nosTa1337/AstroMotion.git
-cd AstroMotion
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python scripts/create_demo.py
-python main.py --input examples/deep_sky.png --starless examples/deep_sky_starless.png --config configs/immersive_loop.yaml --resolution 720p --duration 30 --output examples/demo_loop.mp4
-```
-
-</details>
-
-**Ergebnis:** `examples/demo_loop.mp4` – 30 Sekunden, nahtloser Loop, Ambient-Musik.
-**Eigene Fotos:** `--input` und `--starless` durch dein Foto und dessen passendes sternenloses Bild ersetzen; alternativ [StarNet verwenden](#variante-b-starnet--starnet2-lokal).
-**Andere Länge:** `--duration 45`. **Erneut exportieren:** `--overwrite`. **Details/Probleme:** [Einrichtung](#1-einrichtung).
-
-## Eigene Seestar-Aufnahmen und Video-Demos
-
-Die Originalfotos stammen vom **Seestar S50 Pro** und wurden mit **AstroWizard**
-bearbeitet. Philipp / nosTa1337 hat sie zur Verwendung freigegeben.
-
-**Die öffentlich präsentierten GIFs und MP4s werden ohne StarNet erzeugt.**
-Ein kleiner, transparenter OpenCV-Demomodus erkennt punktförmige Lichtquellen,
-entfernt deren Kernbereiche näherungsweise aus der Hintergrundebene und bewegt
-Sterne und Nebel anschließend unabhängig. Das ist ein **künstlerischer Demo-Effekt**
-und keine mit StarNet2 vergleichbare astronomische Sternentfernung.
-Die Sterne bekommen künstlerische Tiefenwerte, keine gemessenen Entfernungen.
+Die Fotos stammen von **Philipp / nosTa1337**, aufgenommen mit **Seestar S50 Pro** und bearbeitet mit **AstroWizard**. Der Projektbetreiber hat nach eigener Mitteilung die Freigabe für StarNet2-Verarbeitung zu Demozwecken erhalten. StarNet2 ist separat lizenziert; Software und Gewichte liegen nicht im Repository.
 
 | Orionnebel · M42 | Plejaden · M45 |
 |---|---|
-| [![Orionnebel – bewegte Sterne](examples/real/orion_preview.gif)](examples/real/orion_demo.mp4) | [![Plejaden – bewegte Sterne](examples/real/pleiades_preview.gif)](examples/real/pleiades_demo.mp4) |
-| [Originalfoto](examples/real/orion.jpg) · [MP4 mit Musik (30 s)](examples/real/orion_demo.mp4) | [Originalfoto](examples/real/pleiades.jpg) · [MP4 mit Musik (30 s)](examples/real/pleiades_demo.mp4) |
+| [![Orionnebel mit StarNet2-Sternflug](examples/real/orion_starnet_preview.gif)](examples/real/orion_starnet_demo.mp4) | [![Plejaden mit StarNet2-Sternflug](examples/real/pleiades_starnet_preview.gif)](examples/real/pleiades_starnet_demo.mp4) |
+| [Originalfoto](examples/real/orion.jpg) · [MP4 mit Musik](examples/real/orion_starnet_demo.mp4) | [Originalfoto](examples/real/pleiades.jpg) · [MP4 mit Musik](examples/real/pleiades_starnet_demo.mp4) |
 
-**30 Sekunden · 720 × 1280 · 30 FPS · H.264/AAC.** Die GIFs laufen
-direkt in der README ohne Ton; die Videos enthalten jeweils eine eigenständig
-erzeugte Ambient-Variante. Die Original-JPEGs bleiben unverändert.
-Alle vier Demo-Mediendateien werden lokal mit folgendem Befehl neu erstellt:
+**30 Sekunden, 1080 × 1920, 30 FPS, H.264 + AAC.** Die GIF-Vorschauen laufen direkt in der README und sind stumm. Musik wird lokal neu erzeugt, ohne Samples fremder Aufnahmen.
 
-```bash
-python scripts/render_photo_demo.py --overwrite
-```
-
-Weitere Optionen: `--only pleiades`, `--duration 45`, `--seed 1234`.
-Die zufällige Musik wird bei jedem Lauf neu generiert, sofern kein Seed gesetzt ist.
-Der Demomodus läuft ohne StarNet; hochwertige eigene 2,5D-Videos benötigen eine
-echte Starless-Datei oder eine separat installierte StarNet-CLI.
-Siehe [Medienhinweise](examples/real/README.md).
-
-### Persönliche StarNet2-Exporte und Lizenzgrenze
-
-Die früher gerenderten persönlichen StarNet2-Exporte sind noch als
-[Orion-MP4](examples/real/orion_starnet_demo.mp4) und
-[Plejaden-MP4](examples/real/pleiades_starnet_demo.mp4) vorhanden.
-Sie wurden **nicht** als neue öffentliche Demo-Medien verwendet oder beim
-OpenCV-Neurendern überschrieben. Für StarNet2-Ausgaben gelten die separaten
-[Lizenzbedingungen und Einschränkungen](THIRD_PARTY_NOTICES.md);
-insbesondere ist die Nutzung als Software-Produktasset möglicherweise nicht
-ohne ausdrückliche Genehmigung zulässig. Die alten StarNet2-Videos können
-noch Artefakte aufweisen und werden nicht als bereinigte Neu-Renderings beworben.
-
-### Videos mit StarNet2 lokal neu erstellen
-
-Die offizielle [StarNet2-CLI](https://starnetastro.com/cli-tools/starnet/)
-separat installieren, Lizenz lesen und akzeptieren. StarNet und Gewichte
-sind kein Teil dieses Repositorys. Die überarbeitete optionale
-`foreground_cleanup`-Pipeline repariert auffällige farbige Löcher
-an besonders hellen Sternen und schützt kompakte blaue Sternkerne.
+**Beide Videos lokal mit echter StarNet2-CLI neu rendern:**
 
 ```bash
-python scripts/render_starnet_examples.py --starnet "/path/to/starnet2" --overwrite
+python scripts/render_starnet_examples.py --starnet "/pfad/zu/starnet2" --overwrite
 ```
 
-Oder mit bereits vorhandenen, geeigneten Starless-Dateien:
+Optional: `--only pleiades`, `--duration 45`, `--seed 1234`.
+Nur der [StarNet2-Demo-Workflow](.github/workflows/starnet-demos.yml)
+rendert die öffentliche Galerie auf GitHub. Er lädt StarNet2 direkt
+vom offiziellen Anbieter, prüft Versions- und Lizenzrevision und veröffentlicht
+MP4/GIF erst nach erfolgreichem Render und technischen Checks.
 
-```bash
-python scripts/render_starnet_examples.py --starless-dir "/path/to/starless" --overwrite
-```
-
-StarNet2-Clips werden nicht durch GitHub Actions erstellt. Eigene
-StarNet2-Exporte und deren Veröffentlichung erfordern die Prüfung der
-für die jeweilige StarNet-Version gültigen Lizenz.
+Siehe [Medienhinweise](examples/real/README.md) und
+[Lizenzhinweise](THIRD_PARTY_NOTICES.md).
 
 ### AstroMotion v1.2 – Cinematic Intelligence
 
@@ -284,7 +178,7 @@ python -c "import platform; print(platform.machine())"
 
 Bei nativer Ausführung sollten beide Ausgaben dieselbe Architektur zeigen: `arm64` auf Apple Silicon bzw. `x86_64` auf Intel. Für StarNet ebenfalls das passende native Paket wählen.
 
-Die Windows-Dateien `setup_windows.bat`, `start_windows.bat` und `render_demo_windows.bat` werden unter Linux und macOS durch die Terminalbefehle in dieser Anleitung ersetzt. macOS wurde hier bisher nicht ausgeführt.
+Die Windows-Dateien `setup_windows.bat` und `start_windows.bat` werden unter Linux und macOS durch die Terminalbefehle in dieser Anleitung ersetzt. macOS wurde hier bisher nicht ausgeführt.
 
 Für automatische Texteinblendungen und die Caption-Tests kann optional DejaVu Sans installiert werden. Pillow sucht unter macOS auch im lokalen Fontordner:
 
@@ -320,40 +214,20 @@ source .venv/bin/activate
 
 Alternativ ohne Aktivierung direkt `.venv/bin/python main.py ...` verwenden. `deactivate` verlässt die venv. Für ein Update `git pull` und danach `python -m pip install -r requirements.txt` in der aktivierten Umgebung ausführen.
 
-## 2. Erste Demo ohne StarNet
+## 2. Erste StarNet2-Demo
 
-`render_demo_windows.bat` starten. Sie erzeugt das synthetische Bildpaar und rendert
-30 Sekunden als Loop in 720 × 1280 mit lokal synthetisierter Musik nach
-`examples\demo_loop.mp4`. Vor einem manuellen Demo-Aufruf das Bildpaar mit
-`.venv\Scripts\python.exe scripts\create_demo.py` erzeugen. In der separaten
-Projekt-ZIP liegt außerdem `examples\AstroMotion_Demo.mp4` (1080 × 1920, 30 FPS).
-
-```bat
-.venv\Scripts\python.exe main.py --input examples\deep_sky.png --starless examples\deep_sky_starless.png --preset cinematic --format vertical --resolution 720p --duration 20 --music ambient --output examples\meine_demo.mp4
-```
-
-Das Demo-Starless ist die bekannte Nebelebene der synthetischen Aufnahme. Es
-simuliert **keine** Sternentrennung; dieses Paar prüft den kompletten Ablauf ab
-Ebenenextraktion unabhängig von StarNet.
-
-### Demo unter Linux / macOS
-
-Nach der Einrichtung aus Abschnitt 1 aus dem Projektordner mit aktivierter venv:
+[Orionnebel](examples/real/orion_starnet_demo.mp4) und
+[Plejaden](examples/real/pleiades_starnet_demo.mp4) können sofort angesehen
+werden. Mit der offiziell installierten StarNet2-CLI lassen sich die beiden
+30-Sekunden-Videos samt GIFs und neuer Ambient-Musik selbst rendern:
 
 ```bash
-python scripts/create_demo.py
-python main.py \
-  --input examples/deep_sky.png \
-  --starless examples/deep_sky_starless.png \
-  --config configs/immersive_loop.yaml \
-  --resolution 720p \
-  --duration 30 \
-  --output examples/demo_loop.mp4
+python scripts/render_starnet_examples.py --starnet "/pfad/zu/starnet2" --overwrite
 ```
 
-Dies erzeugt einen 30-Sekunden-Loop mit Ambient-Musik. Mit `--duration 45` lässt sich ein 45-Sekunden-Loop erzeugen; mit `--no-loop` die normale Kamerafahrt. Für einen erneuten Export auf denselben Dateinamen `--overwrite` ergänzen.
-
-Unter macOS mit `open examples/demo_loop.mp4` ansehen; auf einem Linux-Desktop mit `xdg-open examples/demo_loop.mp4` oder in einem Videoplayer öffnen.
+Optionen: `--only orion`, `--only pleiades`, `--duration 45`,
+`--seed 1234`. Es werden weder künstliche Beispielsterne noch
+OpenCV-basierte Ersatztrennungen erzeugt.
 
 ## 3. Eigene Seestar-Aufnahmen
 
@@ -616,7 +490,7 @@ loop:
 Die erzeugte Bild-/Tonperiode ist geschlossen. Für unterbrechungsfreie Wiedergabe
 muss der Player selbst nahtlos wiederholen; eine Ladepause der Plattform kann die
 Videodatei nicht verhindern. Auf Windows lässt sich die Demo direkt über
-`render_demo_windows.bat` als 30-Sekunden-Loop erzeugen.
+`scripts/render_starnet_examples.py` mit der echten StarNet2-CLI als 30-Sekunden-Loop erzeugen.
 
 Wichtige Regler:
 
@@ -695,7 +569,7 @@ bearbeiteten Eingabefotos und wendet die festen `effects.*`-Werte des Presets an
 Bloom/Glow reagieren auf helle Bildbereiche; das ist keine automatische Farbkorrektur.
 Für möglichst unveränderte Farben: `contrast: 1.0`, `saturation: 1.0`,
 `grade: 0.0`. Zusätzlich `bloom`, `glow` und `vignette` auf `0.0`, wenn auch
-die Helligkeitswirkung erhalten bleiben soll. So sind die beiden Foto-Demos konfiguriert.
+die Helligkeitswirkung erhalten bleiben soll. So können auch StarNet2-Demos konfiguriert werden.
 
 ### Dezente Objektbeschriftung und Annäherung
 

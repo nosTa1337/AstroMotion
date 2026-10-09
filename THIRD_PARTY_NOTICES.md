@@ -6,7 +6,7 @@ Stand: 09.10.2026. Die Versionsangaben beziehen sich auf `requirements.txt` und 
 
 Der eigene AstroMotion-Quellcode steht unter [MIT](LICENSE). Bei Weitergabe des Codes sind der Copyright-Hinweis und der vollständige Lizenztext beizubehalten. Die MIT-Lizenz von AstroMotion erteilt keine zusätzlichen Rechte an externen Komponenten oder deinen Eingabedateien.
 
-Dieses Repository enthält keine gebündelten Python-Wheels, keine FFmpeg-/StarNet-Programme und keine StarNet-Modellgewichte. Abhängigkeiten werden separat installiert. Neben dem synthetischen Testbildgenerator enthält es eigene, zur Verwendung freigegebene Aufnahmen und daraus erzeugte Demovideos mit künstlerisch approximierter Sternbewegung; siehe [Medienhinweise](examples/real/README.md).
+Dieses Repository enthält keine gebündelten Python-Wheels, keine FFmpeg-/StarNet-Programme und keine StarNet-Modellgewichte. Abhängigkeiten werden separat installiert. Es enthält eigene Seestar-Aufnahmen und echte StarNet2-basierte Demovideos/GIFs; siehe [Medienhinweise](examples/real/README.md).
 
 ## Python-Pakete
 
@@ -37,7 +37,7 @@ StarNet2/StarNet++ und Modellgewichte separat vom [offiziellen Anbieter](https:/
 
 Diese Revision erlaubt persönliche und kommerzielle Astrofotoverarbeitung sowie bedingt den Aufruf der mitgelieferten CLI als separaten Prozess. Integrationen müssen StarNet benennen, den vollständigen Vertrag zugänglich machen und vor Verwendung ausdrückliche Zustimmung erhalten; die Zustimmung im offiziellen Installer kann dafür genügen. Software-/Modellweitergabe erfordert schriftliche Erlaubnis. Für Ausgaben bestehen zusätzliche Beschränkungen, insbesondere für Modelltraining sowie Entwicklung, Tests und Produktassets anderer Software; die ausdrücklich erlaubten Integrationsaktivitäten sind ausgenommen.
 
-Die README zeigt die von eigenen Seestar-S50-Pro-Fotos abgeleiteten StarNet2-MP4s und GIF-Vorschauen; die früheren OpenCV-Demos liegen weiterhin im Repository. StarNet2-Software und Modellgewichte werden nicht mitgeliefert. **Abschnitt 5 der Lizenz schränkt die Verwendung von Outputs als Assets anderer Softwareprodukte ausdrücklich ein, unabhängig davon, ob die Software kommerziell ist.** Die Verwendung in einer AstroMotion-README-Galerie ist damit möglicherweise nicht ohne zusätzliche schriftliche Genehmigung gedeckt. Die eigenen Bildrechte und AstroMotions MIT-Lizenz heben dies nicht auf. Nutzer müssen die StarNet2-Lizenz für ihre jeweilige installierte Version selbst lesen und akzeptieren; alternativ kann ein zulässig erstelltes Starless-Bild über --starless verarbeitet werden.
+Die README zeigt ausschließlich StarNet2-basierte Demos. Der Projektbetreiber hat nach eigener Mitteilung eine zusätzliche Freigabe des Rechteinhabers für diese Demo-Nutzung erhalten. Diese Aussage ist eine vom Projektbetreiber mitgeteilte, nicht allgemein übertragbare Berechtigung. Der Umfang einer separaten Freigabe bleibt maßgeblich; sie erlaubt nicht die Weitergabe der StarNet2-Software, der Modellgewichte oder eine beliebige Nachnutzung der Outputs. Andere Nutzer müssen die jeweils geltende Lizenz selbst lesen und akzeptieren.
 
 Die historische Python-Implementierung im [Repository des Autors](https://github.com/nekitmm/starnet) nennt MIT für Code und CC BY-NC-SA 4.0 für Gewichte. Diese Angaben dürfen nicht pauschal auf aktuelle Binärpakete übertragen werden.
 
