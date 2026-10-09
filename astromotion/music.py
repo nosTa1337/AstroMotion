@@ -1,7 +1,9 @@
-"""Seeded stereo ambient synthesis, streamed to PCM WAV without any samples."""
+"""Random or reproducible stereo ambient synthesis without recorded samples."""
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
+import secrets
 import uuid
 import wave
 
@@ -10,13 +12,18 @@ import numpy as np
 from .config import Audio
 
 
+def resolve_audio_seed(cfg: Audio) -> Audio:
+    """Resolve randomness once, preserving the caller's reusable configuration."""
+    return replace(cfg, seed=secrets.randbits(32)) if cfg.seed is None else cfg
+
+
 def synthesize_ambient(path: Path, duration: float, cfg: Audio) -> None:
     """Commit a complete checked WAV atomically; preserve output on failure."""
     path = path.resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.parent / f".{path.stem}.{uuid.uuid4().hex}.wav"
     try:
-        _synthesize_ambient_stream(temporary, duration, cfg)
+        _synthesize_ambient_stream(temporary, duration, resolve_audio_seed(cfg))
         with wave.open(str(temporary), "rb") as wav:
             if (wav.getnframes() != round(duration * cfg.sample_rate) or
                     wav.getnchannels() != 2 or wav.getframerate() != cfg.sample_rate):
@@ -45,14 +52,16 @@ def _synthesize_ambient_stream(path: Path, duration: float, cfg: Audio) -> None:
     }
     if cfg.harmony not in harmonies or not -12 <= cfg.transpose <= 12:
         raise ValueError("Ungültige Ambient-Harmonie oder Transposition.")
-    chords = np.array(harmonies[cfg.harmony]) + cfg.transpose
+    chords = np.array(harmonies[cfg.harmony])[rng.permutation(4)] + cfg.transpose
     phases = rng.uniform(0, 2 * np.pi, (4, 6, 3))
     detune = rng.uniform(-.0018, .0018, (4, 6, 3))
     pans = rng.uniform(.15, .85, (4, 6))
-    progression_time = max(7.0, duration / 3)
+    progression_time = max(7.0, duration / 3) * rng.uniform(.88, 1.12)
     accent_rng = np.random.default_rng(cfg.seed ^ 0xA57A)
     event_count = max(1, int(duration / 5))
     event_times = np.linspace(min(2.8, duration * .3), max(duration * .8, duration - 3), event_count)
+    event_times = np.sort(np.clip(event_times + accent_rng.uniform(-.8, .8, event_count),
+                                  min(.3, duration * .1), max(.3, duration - .35)))
     events = []
     for onset in event_times:
         chord = int(onset / progression_time) % 4

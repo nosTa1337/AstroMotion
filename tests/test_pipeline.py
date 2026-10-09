@@ -19,7 +19,7 @@ from astromotion.config import Audio, Config, Effects, Motion, Separation, load_
 from astromotion.effects import EffectProcessor
 from astromotion.encoding import probe
 from astromotion.imaging import load_image, save_png, save_tiff, to_linear, to_srgb
-from astromotion.music import synthesize_ambient
+from astromotion.music import resolve_audio_seed, synthesize_ambient
 from astromotion.pipeline import render
 from astromotion.separation import Layers, composite, extract_layers, run_starnet, starnet_command
 
@@ -154,7 +154,7 @@ def test_effects_are_finite_bounded_and_disableable(pair):
 
 def test_ambient_is_reproducible_with_correct_duration_and_fades(tmp_path):
     a, b, c = (tmp_path / name for name in ("a.wav", "b.wav", "c.wav"))
-    cfg = Audio(mode="ambient", fade_seconds=.4)
+    cfg = Audio(mode="ambient", seed=42, fade_seconds=.4)
     synthesize_ambient(a, 1.25, cfg)
     synthesize_ambient(b, 1.25, cfg)
     synthesize_ambient(c, 1.25, replace(cfg, seed=999))
@@ -164,6 +164,31 @@ def test_ambient_is_reproducible_with_correct_duration_and_fades(tmp_path):
         data = np.frombuffer(w.readframes(w.getnframes()), dtype="<i2").reshape(-1, 2)
     assert abs(data).max() < 32767 and abs(data[0]).max() == 0 and abs(data[-1]).max() == 0
     assert np.sqrt(np.mean(data[500:2500].astype(float)**2)) < np.sqrt(np.mean(data[24000:26000].astype(float)**2))
+
+
+def test_random_audio_changes_each_call_and_seed_replays_it(tmp_path, monkeypatch):
+    seeds = iter((101, 202))
+    monkeypatch.setattr("astromotion.music.secrets.randbits", lambda bits: next(seeds))
+    cfg = Audio(mode="ambient", accents=.45)
+    first, second = resolve_audio_seed(cfg), resolve_audio_seed(cfg)
+    assert cfg.seed is None and (first.seed, second.seed) == (101, 202)
+    a, b, replay = (tmp_path / name for name in ("random_a.wav", "random_b.wav", "replay.wav"))
+    synthesize_ambient(a, 2, first)
+    synthesize_ambient(b, 2, second)
+    synthesize_ambient(replay, 2, first)
+    assert a.read_bytes() != b.read_bytes()
+    assert a.read_bytes() == replay.read_bytes()
+
+
+def test_optional_audio_seed_validation_and_preset_defaults():
+    for seed in (None, 0, 2**32 - 1):
+        assert load_config(overrides={"audio": {"seed": seed}}).audio.seed == seed
+    for seed in (-1, 2**32, True, 1.5, "random"):
+        with pytest.raises(ValueError):
+            load_config(overrides={"audio": {"seed": seed}})
+    root = Path(__file__).resolve().parents[1]
+    for path in (root / "configs").glob("*.yaml"):
+        assert load_config(path).audio.seed is None
 
 
 def test_ambient_harmony_variants_change_pitch_material_without_clipping(tmp_path):
@@ -289,6 +314,9 @@ def test_complete_streamed_render(pair, tmp_path, audio):
         cfg.audio.file = str(wav)
     progress = []
     report = render(input_path, output, cfg, starless_path, lambda done, total, elapsed: progress.append(done))
+    if audio == "ambient":
+        assert cfg.audio.seed is None
+        assert type(report["config"]["audio"]["seed"]) is int
     assert progress == list(range(1, 7))
     streams = report["probe"]["streams"]
     if cfg.starfield.enabled:

@@ -25,7 +25,7 @@ effects:
   twinkle: 0.0
 audio:
   mode: ambient
-  seed: 42
+  seed: null  # neue Ambient-Variante bei jedem Lauf
 separation:
   extra_args: ['--upsample']
   foreground_cleanup: true

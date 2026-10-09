@@ -54,7 +54,7 @@ class Separation:
 class Audio:
     mode: str = "none"  # none, ambient, file
     file: str | None = None
-    seed: int = 42
+    seed: int | None = None  # None: fresh music per render; integer: reproducible
     gain: float = 0.7
     fade_seconds: float = 2.0
     sample_rate: int = 48000
@@ -191,8 +191,8 @@ class Config:
             raise ValueError("Audio: none/ambient/file; file benötigt audio.file.")
         if not 0 <= a.gain <= 2 or a.fade_seconds < 0 or a.sample_rate not in (44100, 48000):
             raise ValueError("Ungültige Audio-Einstellungen.")
-        if not 0 <= a.seed < 2**32:
-            raise ValueError("Audio-Seed: 0..4294967295.")
+        if a.seed is not None and (type(a.seed) is not int or not 0 <= a.seed < 2**32):
+            raise ValueError("Audio-Seed: null (zufällig) oder 0..4294967295.")
         if a.harmony not in ("original", "floating", "dusk") or not -12 <= a.transpose <= 12:
             raise ValueError("Audio harmony: original/floating/dusk; transpose: -12..12 Halbtöne.")
         if not 0 <= a.accents <= 1:
@@ -261,7 +261,10 @@ def _merge(target: Any, values: dict[str, Any]) -> None:
                 raise ValueError(f"{key} muss ein Objekt sein.")
             _merge(current, value)
         else:
-            if current is not None:
+            if isinstance(target, Audio) and key == "seed":
+                if value is not None and type(value) is not int:
+                    raise ValueError("Audio-Seed: Ganzzahl oder null.")
+            elif current is not None:
                 # bool is a subclass of int, so reject accidental coercions explicitly.
                 valid = (type(value) is type(current)) or (type(current) is float and type(value) is int)
                 if not valid:

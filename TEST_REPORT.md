@@ -297,3 +297,14 @@ Dateien und persönliche Fotodaten werden separat vom Quellcodepaket bereitgeste
   visuell geprüft. Hintergrundzoom sichtbar, keine schwarzen Randflächen.
 - Exporte nutzen bereits zuvor erzeugte echte StarNet-Ebenen, ohne neue
   Sternentrennung oder Ersatzverfahren. Windows weiterhin ungetestet.
+
+
+## Ergänzung: README-Demos und zufällige Musik (09.10.2026)
+
+- 58 Tests bestanden unter Linux/Python 3.12, einschließlich FFmpeg-Exports, festem Seed, zufälligem Seed, Wiederholung einer Variante und Seed-Validierung.
+- Standard und mitgelieferte Profile: neuer Ambient-Seed je Render; verwendeter Seed wird im Render-Bericht gespeichert, Eingabekonfiguration bleibt wiederverwendbar.
+- Zwei eigene JPEG-Aufnahmen unverändert übernommen. Foto-Demos bewusst als 2D-Animation ohne StarNet, unabhängige Sternebene oder automatisches Farbgrading erzeugt.
+- Beide Exporte: 30 Sekunden, 720 × 1280, 30 FPS, 900 Frames, H.264/AAC; vollständige Dekodierung mit FFmpeg ohne Fehler. Stichproben mit sichtbarer Objektbeschriftung visuell geprüft.
+- GIF-Vorschauen: jeweils 216 × 384, 180 Frames, vollständiger 30-Sekunden-Zyklus; Originaldateien bytegleich mit Uploads, lokale README-Medienpfade geprüft.
+- StarNet-Lizenzrevision 07.09.2026 aus dem offiziellen Linux-Paket gelesen. Programm/Gewichte werden nicht weitergegeben und wurden nicht für diese Foto-Demos verwendet.
+- Neue Version weiterhin nicht auf Windows/macOS ausgeführt.

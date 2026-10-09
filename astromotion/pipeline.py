@@ -1,7 +1,7 @@
 """UI-independent orchestration. A future Gradio UI can call render() directly."""
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 import json
 import logging
 from pathlib import Path
@@ -17,7 +17,7 @@ from .config import Config
 from .effects import EffectProcessor
 from .encoding import VideoEncoder, resolve_binary
 from .imaging import load_image, resize_work, save_png, to_srgb
-from .music import synthesize_ambient
+from .music import resolve_audio_seed, synthesize_ambient
 from .looping import camera_phase, prepare_audio_loop
 from .separation import extract_layers, run_starnet
 from .starfield import PerspectiveStars
@@ -34,6 +34,8 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
     Diagnostic files live beside the output under <stem>_assets/.
     """
     cfg.validate()
+    if cfg.audio.mode == "ambient":
+        cfg = replace(cfg, audio=resolve_audio_seed(cfg.audio))
     input_path, output = input_path.resolve(), output.resolve()
     if output.suffix.lower() != ".mp4":
         raise ValueError("Ausgabe muss eine .mp4-Datei sein.")
@@ -57,6 +59,8 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
     cv2.setNumThreads(2)
     start = time.monotonic()
     try:
+        if cfg.audio.mode == "ambient":
+            LOG.info("Ambient-Musik: Seed %d (mit --seed wiederholbar).", cfg.audio.seed)
         original_full = load_image(input_path, cfg.max_input_pixels)
         original_shape = original_full.shape
         original = resize_work(original_full, cfg.work_long_edge)

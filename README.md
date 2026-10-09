@@ -13,13 +13,96 @@ keine Cloud, keine Weboberfläche. Nach der Installation funktioniert das Render
 offline. Python 3.11+; Python 3.12 wird für die gepinnten Abhängigkeiten empfohlen.
 Einrichtungsanleitungen für Windows, Linux und macOS stehen unten.
 
+## TL;DR – schnell zum ersten Video
+
+**Demo ausprobieren:** Betriebssystem aufklappen, Schritte ausführen, fertig. Für die synthetische Demo brauchst du **kein StarNet**.
+
+<details>
+<summary><strong>Windows</strong></summary>
+
+1. [Repository herunterladen](https://github.com/nosTa1337/AstroMotion/archive/refs/heads/main.zip) und entpacken.
+2. **Python 3.12** und **FFmpeg/FFprobe mit libx264** installieren; Python Launcher und FFmpeg in PATH verfügbar machen.
+3. Im Projektordner nacheinander doppelklicken:
+
+```text
+setup_windows.bat
+render_demo_windows.bat
+```
+
+</details>
+
+<details>
+<summary><strong>Linux (Ubuntu / Debian)</strong></summary>
+
+Voraussetzung: `python3 --version` zeigt Python **3.11+**, empfohlen 3.12.
+
+```bash
+sudo apt update
+sudo apt install python3 python3-venv python3-pip git ffmpeg
+git clone https://github.com/nosTa1337/AstroMotion.git
+cd AstroMotion
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python scripts/create_demo.py
+python main.py --input examples/deep_sky.png --starless examples/deep_sky_starless.png --config configs/immersive_loop.yaml --resolution 720p --duration 30 --output examples/demo_loop.mp4
+```
+
+</details>
+
+<details>
+<summary><strong>macOS (Intel / Apple Silicon)</strong></summary>
+
+Voraussetzung: [Homebrew](https://brew.sh/) ist installiert und in PATH.
+
+```bash
+brew install python@3.12 ffmpeg git
+git clone https://github.com/nosTa1337/AstroMotion.git
+cd AstroMotion
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python scripts/create_demo.py
+python main.py --input examples/deep_sky.png --starless examples/deep_sky_starless.png --config configs/immersive_loop.yaml --resolution 720p --duration 30 --output examples/demo_loop.mp4
+```
+
+</details>
+
+**Ergebnis:** `examples/demo_loop.mp4` – 30 Sekunden, nahtloser Loop, Ambient-Musik.
+**Eigene Fotos:** `--input` und `--starless` durch dein Foto und dessen passendes sternenloses Bild ersetzen; alternativ [StarNet verwenden](#variante-b-starnet--starnet2-lokal).
+**Andere Länge:** `--duration 45`. **Erneut exportieren:** `--overwrite`. **Details/Probleme:** [Einrichtung](#1-einrichtung).
+
+## Eigene Aufnahmen und Beispielvideos
+
+**Seestar S50 Pro + AstroWizard · eigene Aufnahmen von Philipp / nosTa1337 – dürfen verwendet werden.** Die Originalfotos sind unverändert im Repository abgelegt. Für die daraus erzeugten Videos und GIF-Vorschauen gilt dieselbe Erlaubnis; Details in [examples/real/README.md](examples/real/README.md).
+
+| Orionnebel · M42 | Plejaden · M45 |
+|---|---|
+| [![Orionnebel – animierte Vorschau](examples/real/orion_preview.gif)](https://github.com/nosTa1337/AstroMotion/raw/refs/heads/main/examples/real/orion_demo.mp4) | [![Plejaden – animierte Vorschau](examples/real/pleiades_preview.gif)](https://github.com/nosTa1337/AstroMotion/raw/refs/heads/main/examples/real/pleiades_demo.mp4) |
+| [Originalfoto](examples/real/orion.jpg) · [MP4 mit Musik öffnen / herunterladen](https://github.com/nosTa1337/AstroMotion/raw/refs/heads/main/examples/real/orion_demo.mp4) | [Originalfoto](examples/real/pleiades.jpg) · [MP4 mit Musik öffnen / herunterladen](https://github.com/nosTa1337/AstroMotion/raw/refs/heads/main/examples/real/pleiades_demo.mp4) |
+
+Jeweils **30 Sekunden · 720 × 1280 · 30 FPS · H.264/AAC**, ruhige Bildanimation und lokal erzeugte Ambient-Musik. Die kleinen GIFs spielen direkt in der README ohne Ton; ein Klick führt zum vollständigen MP4 mit Ton. YouTube ist dafür nicht erforderlich. Für längere oder größere Videos sind YouTube/Vimeo oder GitHub Releases Alternativen; hier liegen die kurzen Beispiele direkt im Repository.
+
+**Diese beiden Beispiele sind 2D-Bildanimationen ohne Sternentrennung.** Sie zeigen Zoom, Rotation, Beschriftung und Musik; der unabhängige 2,5D-Sternflug benötigt weiterhin ein passendes, zulässig verwendbares Starless-Bild. StarNet wurde für diese Beispiele nicht verwendet, damit seine zusätzlichen Ausgabebedingungen nicht auf eure frei verwendbaren Demo-Medien übertragen werden.
+
+Neu rendern (aktivierte Python-Umgebung, funktioniert auch unter Windows):
+
+```bash
+python scripts/render_photo_demo.py --overwrite
+```
+
+Dabei entsteht jedes Mal eine neue, ähnliche Ambient-Variante. `--seed 1234` macht die Musik wiederholbar; `--duration 45` ändert die Länge. Konfiguration: [configs/photo_demo.yaml](configs/photo_demo.yaml).
+
 **Im Repository:** vollständiger Python-Quellcode, drei Presets, YAML-/JSON-Beispiele,
 Windows-Startdateien, Tests und ein Generator für ein synthetisches 16-Bit-Testbild
-mit passendem Starless. Große Demo-Bilder und gerenderte Videos werden lokal
-erzeugt und nicht in Git gespeichert. Die Projekt-ZIP enthält zusätzlich das
+mit passendem Starless sowie die oben gezeigten eigenen Fotos und kurzen Videos.
+Die synthetischen Testbilder und weiteren Exporte werden lokal erzeugt.
+Die ursprüngliche Projekt-ZIP enthält zusätzlich das
 synthetische Bildpaar und ein gerendertes Demovideo.
 
-**Testgrenze:** Unter Linux/Python 3.12 bestehen 56 Tests, einschließlich echter
+**Testgrenze:** Unter Linux/Python 3.12 bestehen 58 Tests, einschließlich echter
 FFmpeg-Exporte. macOS wurde hier bisher nicht ausgeführt. Die echte
 StarNet2-CLI 2.6.2 wurde inzwischen nach Zustimmung zu ihrer Lizenz lokal ausgeführt,
 einschließlich 2×-Verarbeitung. Windows-Batchdateien und der Windows-Build müssen
@@ -435,8 +518,8 @@ loop:
 - **Musik:** zusätzliche eigene Synthese ohne Fade-Pause, ein Streaming-Overlap
   von normalerweise vier Sekunden. Das Ende setzt sich am Anfang als regulärer
   nächster Audiosample fort; die Überblendung hat glatte Ableitungen. Der Overlap
-  wird bei kurzen Clips auf ein Drittel der Dauer begrenzt. Ambient bleibt seeded
-  und nutzt keine Samples. Eigene MP3/WAV wird dekodiert, auf die nötige Dauer
+  wird bei kurzen Clips auf ein Drittel der Dauer begrenzt. Ambient bekommt bei
+  jedem Lauf einen neuen Seed und nutzt keine Samples. Eigene MP3/WAV wird dekodiert, auf die nötige Dauer
   wiederholt und ebenso am äußeren Übergang überblendet; Schnitte oder Pausen,
   die bereits in deiner Musik liegen, werden dabei nicht repariert.
 - **Text/Funkeln:** zyklische Helligkeit; Titel werden auch bei kurzen Clips vor
@@ -488,6 +571,15 @@ Ambient: Stereo-Pads mit verwandten Moll-/Add9-Voicings, leicht verstimmten
 Sinus-Oszillatoren, langsamen Übergängen, Stereo-Delay und weichen Fades. Originale
 Synthese ohne Samples. Gleicher Seed/einheitliche Einstellungen → gleiche WAV.
 
+**Standard: jedes Mal neue, stilistisch ähnliche Musik.** `audio.seed: null`
+(oder kein gesetzter Seed) wählt für jeden Render einen neuen Zufallswert.
+Innerhalb der gewählten Harmonie variieren Akkordreihenfolge, Übergangsdauer,
+Oszillatorphasen, leichte Verstimmung, Stereo-Verteilung und die leisen Akzente.
+Der ruhige Ambient-Stil bleibt erhalten. Es wird kein fertiger Song heruntergeladen
+und kein KI-Musikdienst aufgerufen. Den verwendeten Seed findest du in
+`render.log` und `render_report.json`; mit `--seed ZAHL` lässt sich die Variante
+bei gleicher Programmversion und gleichen Einstellungen wiederholen.
+
 `audio.harmony` wählt `original`, `floating` (offenere Add9-/Maj7-Klänge) oder
 `dusk` (tiefere Mollflächen). Alle Varianten nutzen dieselbe weiche Padsynthese.
 `audio.transpose` verschiebt die Tonhöhe um −12 bis +12 Halbtöne. Ein anderer
@@ -509,6 +601,16 @@ Eigene MP3/WAV hat Vorrang vor `--music`. Kürzere Dateien werden wiederholt,
 längere auf Videodauer begrenzt. Lautstärke und Fades über `audio.gain` und
 `audio.fade_seconds`. Originalmusikrechte liegen beim jeweiligen Rechteinhaber.
 Keine Musik standardmäßig; `--music none` explizit möglich.
+
+### Werden Farben automatisch aus dem Bild angepasst?
+
+**Nein.** AstroMotion analysiert das Motiv nicht, um automatisch Weißabgleich,
+Farben oder Kontrast zu wählen. Es erhält die sRGB-Farbgrundlage des fertig
+bearbeiteten Eingabefotos und wendet die festen `effects.*`-Werte des Presets an.
+Bloom/Glow reagieren auf helle Bildbereiche; das ist keine automatische Farbkorrektur.
+Für möglichst unveränderte Farben: `contrast: 1.0`, `saturation: 1.0`,
+`grade: 0.0`. Zusätzlich `bloom`, `glow` und `vignette` auf `0.0`, wenn auch
+die Helligkeitswirkung erhalten bleiben soll. So sind die beiden Foto-Demos konfiguriert.
 
 ### Dezente Objektbeschriftung und Annäherung
 
@@ -650,4 +752,10 @@ Plattform-Einrichtung und Paketinformationen:
 - [OpenCV-Headless 4.12.0.88: Plattform-Wheels](https://pypi.org/project/opencv-python-headless/4.12.0.88/)
 - [StarNet: native Installer und Paketstruktur](https://starnetastro.com/documentation/cli-installers/)
 
-AstroMotion: MIT. Externe Komponenten: `THIRD_PARTY_NOTICES.md`.
+### Lizenzhinweise
+
+Der eigene AstroMotion-Quellcode steht unter der [MIT-Lizenz](LICENSE). Bei Weitergabe des Codes den Copyright-Hinweis und den vollständigen MIT-Lizenztext beibehalten.
+
+Die Python-Pakete, FFmpeg/FFprobe, optionale Schriften und StarNet haben eigene Lizenzen. Insbesondere enthält das verwendete OpenCV-Wheel zusätzliche Komponenten, FFmpeg-Builds mit libx264 üblicherweise GPL-Komponenten; für StarNet gelten die Bedingungen des konkret installierten Pakets.
+
+Die versionierte Übersicht und Hinweise zur Weiterverteilung stehen in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Externe Programme und StarNet-Modellgewichte werden in diesem Repository nicht mitgeliefert.

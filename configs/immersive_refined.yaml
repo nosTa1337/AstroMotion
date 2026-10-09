@@ -22,7 +22,7 @@ effects:
   grade: 0.0
 audio:
   mode: ambient
-  seed: 73
+  seed: null  # neue Ambient-Variante bei jedem Lauf
   harmony: floating
   transpose: 0
   accents: 0.45

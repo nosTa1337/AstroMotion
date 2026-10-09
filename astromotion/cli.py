@@ -29,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fps", type=int, choices=(24, 30, 60))
     parser.add_argument("--music", choices=("none", "ambient"))
     parser.add_argument("--audio", type=Path, help="Eigene MP3-/WAV-Datei (hat Vorrang vor --music)")
-    parser.add_argument("--seed", type=int)
+    parser.add_argument("--seed", type=int, help="Musik reproduzieren; ohne festen Seed zufällige Variante")
     parser.add_argument("--parallax", type=float)
     parser.add_argument("--speed", type=float)
     parser.add_argument("--title", help="Dezenter Objektname; aktiviert die Beschriftung")

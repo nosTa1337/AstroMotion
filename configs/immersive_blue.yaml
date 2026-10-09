@@ -22,7 +22,7 @@ effects:
   grade: 0.0
 audio:
   mode: ambient
-  seed: 184
+  seed: null  # neue Ambient-Variante bei jedem Lauf
   harmony: dusk
   transpose: 2
 separation:

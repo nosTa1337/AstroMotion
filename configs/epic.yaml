@@ -6,4 +6,4 @@ duration: 20.0
 fps: 30
 audio:
   mode: ambient
-  seed: 42
+  seed: null  # neue Ambient-Variante bei jedem Lauf

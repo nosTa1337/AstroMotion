@@ -104,7 +104,7 @@ def test_splice_seam_is_regular_next_source_sample_and_atomic(tmp_path):
 def test_audio_loop_reproducible_complete_and_no_silence_at_seam(tmp_path, mode):
     if mode == "file" and not shutil.which("ffmpeg"):
         pytest.skip("FFmpeg fehlt")
-    cfg = Config(duration=2, audio=Audio(mode=mode, fade_seconds=2, accents=.45), loop=Loop(enabled=True))
+    cfg = Config(duration=2, audio=Audio(mode=mode, seed=42, fade_seconds=2, accents=.45), loop=Loop(enabled=True))
     source = None
     if mode == "file":
         source = tmp_path / "source.wav"
