@@ -15,7 +15,7 @@ from .pipeline import render
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="AstroMotion – lokale 2,5D-Deep-Sky-Videos")
     parser.add_argument("--input", type=Path, help="Fertiges, gestretchtes RGB-Astrofoto")
-    parser.add_argument("--starless", type=Path, help="Passendes sternenloses Bild, statt StarNet")
+    parser.add_argument("--starless", type=Path, help="Passende, bereits mit StarNet2 erzeugte Starless-Datei")
     parser.add_argument("--starnet", help="Pfad zu starnet2.exe oder starnet++.exe")
     parser.add_argument("--starnet-mode", choices=("auto", "modern", "legacy"))
     parser.add_argument("--config", type=Path, help="YAML-/JSON-Datei")
@@ -35,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--auto-color", action=argparse.BooleanOptionalAction, default=None,
                         help="Dezente, bildabhängige Kontrast-/Sättigungsanpassung")
     parser.add_argument("--depth-mode", choices=("random", "adaptive"),
-                        help="Künstlerische Sterntiefen: random oder adaptive")
+                        help="Veraltet; wird beim Ebenenrendering ignoriert")
     parser.add_argument("--preview", action="store_true",
                         help="Schnelle 3s-Vorschau mit 720p/24fps und eigenem Dateinamen")
     parser.add_argument("--parallax", type=float)

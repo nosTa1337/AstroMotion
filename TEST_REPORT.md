@@ -1,3 +1,5 @@
+> Historischer Testbericht. Aktueller Stand und entfernte Funktionen: [CLEAN_PIPELINE_REPORT.md](CLEAN_PIPELINE_REPORT.md).
+
 # AstroMotion 1.1 – Testbericht
 
 Ursprünglicher Test am 08.10.2026, Erweiterung am 09.10.2026.

@@ -10,3 +10,6 @@ __pycache__/
 /examples/*.jpg
 /examples/*.tif
 /examples/*.mp4
+
+# Local genuine StarNet2 cache (large inputs/outputs and machine-specific logs)
+/qa/starnet-cache/

@@ -1,5 +1,4 @@
-# Flug durchs echte, mit StarNet getrennte Sternenfeld.
-# Der Nebel bleibt statisch; nur die Sternenebene kommt näher und rotiert.
+# Clean StarNet2 layers; no cleanup, sprites or automatic color changes.
 preset: cinematic
 format: vertical
 resolution: 1080p
@@ -16,16 +15,16 @@ motion:
   speed: 1.0
   overscan: 1.015
 effects:
-  bloom: 0.06
-  glow: 0.015
-  vignette: 0.06
+  bloom: 0.0
+  glow: 0.0
+  vignette: 0.0
   contrast: 1.0
   saturation: 1.0
   grade: 0.0
   twinkle: 0.0
 audio:
   mode: ambient
-  seed: null  # neue Ambient-Variante bei jedem Lauf
+  seed: null
 separation:
-  extra_args: ['--upsample']
-  foreground_cleanup: true
+  extra_args:
+  - --upsample

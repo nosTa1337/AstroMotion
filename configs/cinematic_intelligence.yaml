@@ -1,50 +1,27 @@
-# AstroMotion v1.2: opt-in image-aware cinematic style.
-# Real star separation still requires --starless matching image or --starnet CLI.
+# Clean StarNet2 layers; no cleanup, sprites or automatic color changes.
 preset: cinematic
 format: vertical
 resolution: 1080p
 duration: 30.0
 fps: 30
-cinematic:
-  auto_focus: true
-  auto_color: true
-  focus_strength: 0.8
-  color_strength: 0.85
 motion:
-  zoom: 0.11
-  rotation_deg: 1.7
-  pan_x: 0.0
-  pan_y: 0.0
-  parallax: 0.7
-  star_zoom_extra: 0.04
-  star_rotation_deg: 0.5
-  overscan: 1.025
+  zoom: 0.1
+  rotation_deg: 0.7
+  pan_x: 0.006
+  pan_y: -0.004
+  parallax: 1.0
+  star_zoom_extra: 0.025
+  star_rotation_deg: 0.0
+  overscan: 1.02
 effects:
-  bloom: 0.05
-  glow: 0.015
-  vignette: 0.045
+  bloom: 0.0
+  glow: 0.0
+  vignette: 0.0
   contrast: 1.0
   saturation: 1.0
   grade: 0.0
-starfield:
-  enabled: true
-  count: 1800
-  depth_mode: adaptive
-  depth_correlation: 0.42
-  near: 0.20
-  far: 3.8
-  travel: 2.6
-  drift_x: 0.1
-  drift_y: -0.03
-  rotation_deg: 3.4
-  farfield_gain: 0.26
-  foreground_gain: 0.9
-  photo_profiles: true
-  close_passes: 3
-  close_scale: 1.4
-  close_blur: 1.8
-separation:
-  foreground_cleanup: true
+  twinkle: 0.0
+separation: {}
 audio:
   mode: ambient
   seed: null
@@ -52,5 +29,4 @@ audio:
   accents: 0.4
 loop:
   enabled: true
-  star_cycles: 1
   audio_crossfade_seconds: 4.0
