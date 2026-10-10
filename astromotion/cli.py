@@ -36,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Dezente, bildabhängige Kontrast-/Sättigungsanpassung")
     parser.add_argument("--depth-mode", choices=("random", "adaptive"),
                         help="Künstlerische Sterntiefen bei aktiviertem Sternflug: random oder adaptive")
+    parser.add_argument("--star-color-strength", type=float,
+                        help="Sternfarbstaerke: 0 neutral, 1 volle Farbe; Standard 0.6")
     parser.add_argument("--preview", action="store_true",
                         help="Schnelle 3s-Vorschau mit 720p/24fps und eigenem Dateinamen")
     parser.add_argument("--parallax", type=float)
@@ -61,8 +63,10 @@ def main(argv: list[str] | None = None) -> int:
         cinematic["auto_color"] = args.auto_color
     if cinematic:
         overrides["cinematic"] = cinematic
-    if args.depth_mode is not None:
-        overrides["starfield"] = {"depth_mode": args.depth_mode}
+    starfield = {"depth_mode": args.depth_mode, "color_strength": args.star_color_strength}
+    starfield = {key: value for key, value in starfield.items() if value is not None}
+    if starfield:
+        overrides["starfield"] = starfield
     for group, values in {
         "separation": {"executable": args.starnet, "mode": args.starnet_mode},
         "motion": {"parallax": args.parallax, "speed": args.speed},

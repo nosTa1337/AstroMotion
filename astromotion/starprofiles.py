@@ -12,11 +12,23 @@ import numpy as np
 from .imaging import FloatImage, to_srgb
 
 
+def soften_star_colors(rgb: FloatImage, strength: float) -> FloatImage:
+    """Reduce star chroma without changing luminance, alpha or background pixels.
+
+    Works on RGB and premultiplied RGB: a convex mix preserves RGB <= alpha.
+    Full strength is an exact passthrough for the previous appearance.
+    """
+    if strength == 1:
+        return rgb
+    luminance = (rgb @ np.array([.2126, .7152, .0722], np.float32))[..., None]
+    return luminance + strength * (rgb - luminance)
+
+
 class StarProfiles:
     side = 17
 
     def __init__(self, source: FloatImage, x: np.ndarray, y: np.ndarray,
-                 cores: np.ndarray):
+                 cores: np.ndarray, color_strength: float = 1.0):
         _, labels = cv2.distanceTransformWithLabels((~cores).astype(np.uint8),
                           cv2.DIST_L2, 5, labelType=cv2.DIST_LABEL_PIXEL)
         pad = self.side // 2
@@ -56,7 +68,7 @@ class StarProfiles:
             chroma /= np.maximum(chroma.max(axis=2, keepdims=True), 1e-6)
             # Premultiplied color: every channel <= alpha; RGB is zero when
             # transparent, so interpolation/defocus cannot create dark fringes.
-            self.rgba[i, ..., :3] = chroma * alpha[..., None]
+            self.rgba[i, ..., :3] = soften_star_colors(chroma * alpha[..., None], color_strength)
             self.rgba[i, ..., 3] = alpha
         self.mips = [self.rgba]
         for side in (9, 5):

@@ -87,6 +87,7 @@ class Starfield:
     rotation_deg: float = 4.0
     farfield_gain: float = 0.18
     foreground_gain: float = 1.0
+    color_strength: float = 0.6  # 0: neutral stars; 1: full residual color
     max_radius: float = 12.0  # sigma cap at a 1080-pixel short edge
     shutter: float = 0.6  # subframe motion trail in frame intervals
     photo_profiles: bool = False
@@ -225,6 +226,8 @@ class Config:
             raise ValueError("Starfield drift max. ±0.5; Rotation max. 15°.")
         if not (0 <= f.farfield_gain <= 1 and 0 <= f.foreground_gain <= 3 and 1 <= f.max_radius <= 30 and 0 <= f.shutter <= 2):
             raise ValueError("Ungültige Starfield-Helligkeit, Radius oder Shutter.")
+        if not 0 <= f.color_strength <= 1:
+            raise ValueError("Starfield color_strength: 0..1.")
         if f.depth_mode not in ("random", "adaptive") or not 0 <= f.depth_correlation <= 1:
             raise ValueError("Starfield: depth_mode random/adaptive, depth_correlation 0..1.")
         if not (0 <= f.close_passes <= 20 and 1 <= f.close_scale <= 2.5 and 0 <= f.close_blur <= 8):

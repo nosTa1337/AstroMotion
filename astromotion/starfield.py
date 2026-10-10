@@ -17,7 +17,7 @@ from .animation import Animator, smootherstep
 from .config import Loop, Starfield
 from .imaging import FloatImage, to_srgb
 from .separation import Layers
-from .starprofiles import StarProfiles
+from .starprofiles import StarProfiles, soften_star_colors
 
 LOG = logging.getLogger(__name__)
 
@@ -86,11 +86,12 @@ class PerspectiveStars:
         reference_depth = cfg.far * .55
         self.world_xy = ((projected - self.center) / self.focal * reference_depth).astype(np.float32)
         rgb = to_srgb(source[y, x][None])[0]
-        self.colors = np.clip(rgb / np.maximum(rgb.max(axis=1, keepdims=True), .01), 0, 1)
+        self.colors = soften_star_colors(
+            np.clip(rgb / np.maximum(rgb.max(axis=1, keepdims=True), .01), 0, 1), cfg.color_strength)
         self.brightness = (.45 + .55 * np.clip(np.sqrt(strength / .25), 0, 1)).astype(np.float32)
         self.size_factor = rng.uniform(.8, 1.3, self.count).astype(np.float32)
         self.stats: dict[str, float] = {"detected_star_particles": float(self.count)}
-        self.profiles = StarProfiles(source, x, y, mask) if cfg.photo_profiles else None
+        self.profiles = StarProfiles(source, x, y, mask, cfg.color_strength) if cfg.photo_profiles else None
         self.featured = np.zeros(self.count, np.float32)
         # Feature only a few existing stars whose paths skim the viewport edge.
         # Choose them once for the entire clip, avoiding per-frame rank popping.
@@ -102,6 +103,7 @@ class PerspectiveStars:
             if len(indices):
                 choice = indices[np.argmin(np.abs(z[indices] - .36) + np.abs(edge[indices] - .9) * .2)]
                 self.featured[choice] = 1
+        self.stats["star_color_strength"] = cfg.color_strength
         self.stats["photo_profiles_enabled"] = float(cfg.photo_profiles)
         self.stats["featured_close_passes"] = float(self.featured.sum())
         LOG.info("Perspektivischer Sternflug: %d echte Sternkerne, eigene X/Y/Z-Projektion.", self.count)
