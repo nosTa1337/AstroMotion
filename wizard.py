@@ -201,6 +201,7 @@ def collect_render(settings: dict, supplied_input: Path | None = None):
         cfg.starfield.rotation_deg = ask_number('Sternflug Drehung in Grad', cfg.starfield.rotation_deg, -15, 15)
         cfg.starfield.count = ask_number('Maximale Sternanzahl', cfg.starfield.count, 1, 20000, integer=True)
         cfg.starfield.foreground_gain = ask_number('Helligkeit der fliegenden Sterne', cfg.starfield.foreground_gain, 0, 3)
+        cfg.starfield.color_strength = ask_number('Sternfarbstaerke (0 = neutral, 1 = volle Farbe)', cfg.starfield.color_strength, 0, 1)
         if cfg.loop.enabled:
             cfg.loop.star_cycles = ask_number('Sterndurchlaeufe pro Loop (1 = ruhig)', cfg.loop.star_cycles, 1, 5, integer=True)
         else:

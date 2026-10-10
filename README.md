@@ -92,6 +92,7 @@ Append these options to your launch command:
 | Landscape / square format | `--format landscape` / `--format square` |
 | Resolution | `--resolution 720p`, `1080p` or `4k` |
 | Frame rate | `--fps 24`, `30` or `60` |
+| Softer star colors | `--star-color-strength 0.6` |
 | Repeat the same music variation | `--seed 1234` |
 | Your own music / no audio | `--audio "music.wav"` / `--music none` |
 | Display an object name | `--title "Pleiades"` |
@@ -124,10 +125,13 @@ Edit the values in `my_config.yaml`, then launch with **`--config my_config.yaml
 | `starfield.drift_x` / `drift_y` | `0.12` / `-0.035` | Lateral star movement; smaller magnitudes = less drift |
 | `starfield.rotation_deg` | `4.75` | Star-flight rotation range in degrees; `0` = no rotation |
 | `starfield.count` | `4500` | Maximum number of animated stars actually detected in the photo |
+| `starfield.color_strength` | `0.6` | Flying-star color strength: `0` = neutral, `1` = full color |
 | `starfield.foreground_gain` | `1.15` | Brightness of the flying stars |
 | `starfield.seed` | `2026` | Reproducible artistic depth distribution |
 | `audio.gain` | `0.7` | Audio volume |
 | `audio.seed` | `null` | Fresh ambient music per render; an integer repeats a variation |
+
+Flying-star colors come from the StarNet2 residual. Highly colored residuals can look exaggerated when enlarged, so their color strength defaults to `0.6`. This adjustment preserves the stars' luminance, profiles and motion; it does not change the background colors. Use a lower value for more neutral stars or `1` for the previous full color strength. The wizard exposes this setting in its optional menu.
 
 Star depths are assigned artistically, not measured astronomical distances. In a seamless loop, stars fly forward while the background moves gently in and out. Music is crossfaded at the seam. You can also set `star_cycles: 1` in the `loop` section: `2` gives two complete star traversals per video, increasing the pace. Keep it at `1` for a calm flight. `starfield.travel` affects star movement only when looping is disabled.
 

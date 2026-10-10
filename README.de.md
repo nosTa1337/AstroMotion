@@ -92,6 +92,7 @@ Die folgenden Optionen an den Startbefehl anhängen:
 | Querformat / quadratisch | `--format landscape` / `--format square` |
 | Auflösung | `--resolution 720p`, `1080p` oder `4k` |
 | Bildrate | `--fps 24`, `30` oder `60` |
+| Dezentere Sternfarben | `--star-color-strength 0.6` |
 | Dieselbe Musikvariante wiederholen | `--seed 1234` |
 | Eigene Musik / stumm | `--audio "musik.wav"` / `--music none` |
 | Objektname einblenden | `--title "Plejaden"` |
@@ -124,10 +125,13 @@ Die Werte in `meine_config.yaml` bearbeiten und im Startbefehl **`--config meine
 | `starfield.drift_x` / `drift_y` | `0.12` / `-0.035` | Seitliche Bewegung des Sternflugs; kleinere Beträge = weniger Drift |
 | `starfield.rotation_deg` | `4.75` | Drehbereich des Sternflugs in Grad; `0` = keine Drehung |
 | `starfield.count` | `4500` | Obergrenze der animierten, tatsächlich erkannten Sterne |
+| `starfield.color_strength` | `0.6` | Farbstärke fliegender Sterne: `0` = neutral, `1` = volle Farbe |
 | `starfield.foreground_gain` | `1.15` | Helligkeit der fliegenden Sterne |
 | `starfield.seed` | `2026` | Wiederholbare künstlerische Tiefenverteilung der Sterne |
 | `audio.gain` | `0.7` | Lautstärke |
 | `audio.seed` | `null` | Neue Ambient-Musik pro Rendering; eine Ganzzahl wiederholt die Variante |
+
+Die Farben der fliegenden Sterne stammen aus dem StarNet2-Residuum. Stark gefärbte Reste können beim Vergrößern übertrieben wirken; deshalb beträgt ihre Farbstärke standardmäßig `0.6`. Die Anpassung erhält Helligkeit, Sternprofile und Bewegung und verändert keine Hintergrundfarben. Kleinere Werte ergeben neutralere Sterne; `1` entspricht der bisherigen vollen Farbstärke. Im Wizard liegt die Einstellung im optionalen Menü.
 
 Der Sternflug verwendet künstlerisch zugewiesene Tiefen, keine gemessenen astronomischen Entfernungen. Im Perfect Loop fliegen die Sterne vorwärts, während der Hintergrund sanft vor und zurück fährt. Die Musik wird am Übergang überblendet. Im Abschnitt `loop` lässt sich zusätzlich `star_cycles: 1` setzen: `2` bedeutet zwei vollständige Sterndurchläufe pro Video und damit mehr Tempo. Für einen ruhigen Flug bei `1` bleiben. `starfield.travel` beeinflusst den Flug nur bei ausgeschaltetem Loop.
 
