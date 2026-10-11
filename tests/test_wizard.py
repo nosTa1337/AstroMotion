@@ -34,9 +34,9 @@ def test_first_setup_and_next_image_reuse_defaults_without_reusing_caption(monke
     image, output, settings_path, paths = environment
     # First run: initialize paths, change video settings, supply a caption.
     answers(monkeypatch, [paths['starnet'], paths['input_dir'], paths['output_dir'],
-                          paths['ffmpeg'], paths['ffprobe'], image.name,
+                          paths['ffmpeg'], paths['ffprobe'], image.name, 'custom',
                           '45', '60', '720p', 'square', '', 'Plejaden', 'MESSIER 45',
-                          '', 'zufall', 'n', '', 'j'])
+                          '', 'random', 'zufall', 'n', '', 'j'])
     recorded = []
 
     def fake_render(command, **kwargs):
@@ -63,7 +63,7 @@ def test_first_setup_and_next_image_reuse_defaults_without_reusing_caption(monke
     assert stored['defaults']['caption']['enabled'] is False
     assert stored['defaults']['audio']['seed'] is None
     # No setup questions on subsequent runs; Enter keeps previous video settings.
-    answers(monkeypatch, [image.name, '', '', '', '', '', '', '', '', 'n', '', 'j'])
+    answers(monkeypatch, [image.name, 'custom', '', '', '', '', '', '', 'ambient', 'random', 'zufall', 'n', '', 'j'])
     assert wizard.main(['--settings', str(settings_path)]) == 0
     assert len(recorded) == 2
     assert (recorded[1]['duration'], recorded[1]['fps'], recorded[1]['resolution'], recorded[1]['format']) == (45, 60, '720p', 'square')
@@ -78,7 +78,7 @@ def test_existing_output_is_not_overwritten_without_confirmation(monkeypatch, en
     existing = output / 'Pleiades M45_astromotion.mp4'
     existing.write_bytes(b'original movie')
     settings = {'version': 1, 'paths': paths, 'defaults': {}}
-    answers(monkeypatch, [image.name, '', '', '', '', '', '', 'none', 'n', '', 'n', 'new.mp4'])
+    answers(monkeypatch, [image.name, 'custom', '', '', '', '', '', '', 'none', 'n', '', 'n', 'new.mp4'])
     _, selected, _, overwrite = wizard.collect_render(settings)
     assert selected == output / 'new.mp4' and not overwrite
     assert existing.read_bytes() == b'original movie'
@@ -88,7 +88,7 @@ def test_replacement_flag_only_on_explicit_approval(monkeypatch, environment):
     image, output, _, paths = environment
     output.mkdir()
     (output / 'Pleiades M45_astromotion.mp4').write_bytes(b'original movie')
-    answers(monkeypatch, [image.name, '', '', '', '', '', '', 'none', 'n', '', 'j'])
+    answers(monkeypatch, [image.name, 'custom', '', '', '', '', '', '', 'none', 'n', '', 'j'])
     image, selected, _, overwrite = wizard.collect_render({'paths': paths})
     command = wizard.render_command(image, selected, Path('config.json'), overwrite)
     assert '--overwrite' in command
@@ -99,7 +99,7 @@ def test_dry_run_does_not_launch_a_process_and_accepts_safe_custom_audio(monkeyp
     music = image.parent / 'ambient track.wav'
     music.write_bytes(b'not decoded')
     wizard.save_settings(settings_path, {'version': 1, 'paths': paths, 'defaults': {}})
-    answers(monkeypatch, ['', '', '', '', '', 'Stars " & | test', '', 'file', f'"{music}"', 'n', 'video & test.mp4'])
+    answers(monkeypatch, ['custom', '', '', '', '', '', 'Stars " & | test', '', 'file', f'"{music}"', 'n', 'video & test.mp4'])
     monkeypatch.setattr(wizard.subprocess, 'run', lambda *a, **kw: pytest.fail('Dry run launched a process'))
     assert wizard.main(['--settings', str(settings_path), '--input', image.name, '--dry-run']) == 0
     command = wizard.render_command(image, image.parent / 'video & test.mp4', Path('config.json'), False)
@@ -109,7 +109,7 @@ def test_dry_run_does_not_launch_a_process_and_accepts_safe_custom_audio(monkeyp
 
 def test_invalid_fps_and_duration_are_reprompted(monkeypatch, environment):
     image, _, _, paths = environment
-    answers(monkeypatch, [image.name, 'nan', '0', '30', '999', '30', '', '', '', '', 'none', 'n', ''])
+    answers(monkeypatch, [image.name, 'custom', 'nan', '0', '30', '999', '30', '', '', '', '', 'none', 'n', ''])
     _, _, cfg, _ = wizard.collect_render({'paths': paths})
     assert cfg.duration == 30 and cfg.fps == 30
 
@@ -128,7 +128,7 @@ def test_unreadable_settings_fail_with_setup_hint_and_can_be_reset(monkeypatch, 
 def test_cancelled_render_is_not_started(monkeypatch, environment):
     image, _, settings_path, paths = environment
     wizard.save_settings(settings_path, {'version': 1, 'paths': paths, 'defaults': {}})
-    answers(monkeypatch, [image.name, '', '', '', '', '', '', 'none', 'n', '', 'n'])
+    answers(monkeypatch, [image.name, 'custom', '', '', '', '', '', '', 'none', 'n', '', 'n'])
     monkeypatch.setattr(wizard.subprocess, 'run', lambda *a, **kw: pytest.fail('Cancelled render launched a process'))
     assert wizard.main(['--settings', str(settings_path)]) == 0
 
@@ -138,3 +138,21 @@ def test_missing_starnet_is_detected_before_render_questions(environment):
     paths['starnet'] = 'nonexistent-starnet-file'
     with pytest.raises(ValueError, match='--setup'):
         wizard.validate_paths({'paths': paths})
+
+
+def test_profile_and_music_style_are_saved_and_individual_edits_survive(monkeypatch, environment):
+    image, _, _, paths = environment
+    answers(monkeypatch, ['drift', '', '', '', '', '', '', 'ambient', 'pulse', '42', 'n', ''])
+    _, _, cfg, _ = wizard.collect_render({'paths': paths}, image)
+    assert cfg.profile == 'drift' and cfg.starfield.count == 3500
+    assert cfg.audio.style == 'pulse' and cfg.audio.seed == 42
+    assert cfg.duration == 30 and cfg.loop.enabled and cfg.profile_seed is None
+    assert cfg.separation.executable == paths['starnet']
+    cfg.starfield.count = 1234
+    cfg.duration = 45
+    defaults = wizard.remembered_defaults(cfg)
+    answers(monkeypatch, ['', '', '', '', '', '', '', '', '', '', 'n', ''])
+    _, _, reused, _ = wizard.collect_render({'paths': paths, 'defaults': defaults}, image)
+    assert reused.profile == 'drift' and reused.starfield.count == 1234
+    assert reused.duration == 45 and reused.audio.style == 'pulse'
+    assert reused.audio.seed == 42 and reused.profile_seed is None

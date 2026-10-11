@@ -1,13 +1,16 @@
-"""Strict, layered JSON/YAML configuration: defaults -> preset -> file -> CLI."""
+"""Strict, layered JSON/YAML configuration with optional star-flight profiles."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field, fields
+from copy import deepcopy
 import json
 import math
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+MUSIC_STYLES = ("random", "warm", "deep", "shimmer", "pulse", "classic")
 
 
 @dataclass
@@ -55,12 +58,13 @@ class Audio:
     mode: str = "none"  # none, ambient, file
     file: str | None = None
     seed: int | None = None  # None: fresh music per render; integer: reproducible
+    style: str = "random"  # random selects one of four distinct ambient arrangements
     gain: float = 0.7
     fade_seconds: float = 2.0
     sample_rate: int = 48000
-    harmony: str = "original"  # related ambient chord sets
+    harmony: str = "original"  # chord sets for the classic style
     transpose: int = 0  # semitones
-    accents: float = 0.0  # sparse bell and high shimmer; 0 disables both
+    accents: float = 0.0  # optional extra bells/shimmer in the classic style
 
 
 @dataclass
@@ -132,6 +136,9 @@ class Cinematic:
 @dataclass
 class Config:
     preset: str = "cinematic"
+    profile: str = "custom"  # custom keeps existing motion settings
+    profile_seed: int | None = None  # fresh bounded profile variation per render
+    profile_variation: bool = True
     format: str = "vertical"
     resolution: str = "1080p"
     duration: float = 30.0
@@ -165,6 +172,12 @@ class Config:
         return self.frame_count / self.fps
 
     def validate(self) -> None:
+        if self.profile not in PROFILES:
+            raise ValueError("Profile: custom/relax/drift/explore.")
+        if self.profile_seed is not None and (type(self.profile_seed) is not int or not 0 <= self.profile_seed < 2**32):
+            raise ValueError("Profil-Seed: null (zufällig) oder 0..4294967295.")
+        if type(self.profile_variation) is not bool:
+            raise ValueError("profile_variation muss true/false sein.")
         if self.preset not in PRESETS or self.format not in ("vertical", "square", "landscape"):
             raise ValueError("Unbekanntes Preset oder Videoformat.")
         if self.resolution not in ("720p", "1080p", "4k") or self.fps not in (24, 30, 60):
@@ -203,6 +216,8 @@ class Config:
         if not 0 <= s.max_negative_error <= .2 or not all(isinstance(x, str) for x in s.extra_args):
             raise ValueError("Ungültige StarNet-Argumente oder max_negative_error.")
         a = self.audio
+        if a.style not in MUSIC_STYLES:
+            raise ValueError("Audio style: random/warm/deep/shimmer/pulse/classic.")
         if a.mode not in ("none", "ambient", "file") or (a.mode == "file" and not a.file):
             raise ValueError("Audio: none/ambient/file; file benötigt audio.file.")
         if not 0 <= a.gain <= 2 or a.fade_seconds < 0 or a.sample_rate not in (44100, 48000):
@@ -259,6 +274,30 @@ PRESETS: dict[str, dict[str, Any]] = {
              "effects": {}},
 }
 
+_PROFILE_BASE: dict[str, Any] = {
+    "format": "vertical", "resolution": "1080p", "duration": 30.0, "fps": 30,
+    "motion": {"pan_x": 0.0, "pan_y": 0.0, "parallax": 0.0,
+               "star_zoom_extra": 0.0, "star_rotation_deg": 0.0, "speed": 1.0},
+    "effects": asdict(Effects()),
+    "cinematic": {"auto_focus": False, "auto_color": False},
+    "audio": {"mode": "ambient", "style": "random"},
+    "loop": {"enabled": True, "star_cycles": 1},
+    "starfield": {"enabled": True, "photo_profiles": True, "close_passes": 0,
+                  "color_strength": .6, "farfield_gain": .18},
+}
+
+PROFILES: dict[str, dict[str, Any]] = {"custom": {}}
+for _name, _zoom, _rotation, _overscan, _count, _dx, _dy, _roll, _near, _far, _gain, _radius in (
+    ("relax", .08, .5, 1.02, 2200, .035, -.01, 1.0, .26, 4.2, .90, 9.0),
+    ("drift", .12, 1.2, 1.02, 3500, .12, -.035, 2.5, .20, 3.8, 1.05, 10.0),
+    ("explore", .18, 1.5, 1.10, 4500, .065, .02, 3.0, .16, 3.5, 1.12, 12.0),
+):
+    _profile = deepcopy(_PROFILE_BASE)
+    _profile["motion"].update(zoom=_zoom, rotation_deg=_rotation, overscan=_overscan)
+    _profile["starfield"].update(count=_count, drift_x=_dx, drift_y=_dy, rotation_deg=_roll,
+                                 near=_near, far=_far, foreground_gain=_gain, max_radius=_radius)
+    PROFILES[_name] = _profile
+
 
 def _flatten(d: dict[str, Any], prefix: str = "") -> dict[str, Any]:
     result: dict[str, Any] = {}
@@ -281,9 +320,9 @@ def _merge(target: Any, values: dict[str, Any]) -> None:
                 raise ValueError(f"{key} muss ein Objekt sein.")
             _merge(current, value)
         else:
-            if isinstance(target, Audio) and key == "seed":
+            if (isinstance(target, Audio) and key == "seed") or (isinstance(target, Config) and key == "profile_seed"):
                 if value is not None and type(value) is not int:
-                    raise ValueError("Audio-Seed: Ganzzahl oder null.")
+                    raise ValueError(f"{key}: Ganzzahl oder null.")
             elif current is not None:
                 # bool is a subclass of int, so reject accidental coercions explicitly.
                 valid = (type(value) is type(current)) or (type(current) is float and type(value) is int)
@@ -292,6 +331,15 @@ def _merge(target: Any, values: dict[str, Any]) -> None:
             elif value is not None and not isinstance(value, str):
                 raise ValueError(f"{key}: erwartet einen Pfad als String oder null.")
             setattr(target, key, value)
+
+def apply_profile(cfg: Config, name: str) -> Config:
+    """Return a fresh profile configuration without changing paths or the caller."""
+    if name not in PROFILES:
+        raise ValueError(f"Unbekanntes Profil: {name}")
+    result = deepcopy(cfg)
+    _merge(result, PROFILES[name])
+    result.profile = name
+    return result
 
 
 def load_config(path: Path | None = None, overrides: dict[str, Any] | None = None) -> Config:
@@ -309,7 +357,14 @@ def load_config(path: Path | None = None, overrides: dict[str, Any] | None = Non
         raise ValueError(f"Unbekanntes Preset: {name}")
     cfg = Config(preset=name)
     _merge(cfg, PRESETS[name])
+    if values.get("profile", "custom") not in PROFILES:
+        raise ValueError(f"Unbekanntes Profil: {values['profile']}")
+    cfg = apply_profile(cfg, values.get("profile", "custom"))
     _merge(cfg, values)
+    # An explicitly selected CLI/wizard profile supersedes file profile values;
+    # individual overrides still win, including remembered wizard settings.
+    if "profile" in overrides:
+        cfg = apply_profile(cfg, overrides["profile"])
     _merge(cfg, overrides)
     cfg.validate()
     # Paths in a config file are relative to that file, not the process directory.

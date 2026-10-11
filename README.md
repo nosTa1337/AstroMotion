@@ -28,7 +28,7 @@ On Windows, double-click **`start_wizard.bat`** or drag a photo onto it. Alterna
 
 On the first run, the wizard asks for the **StarNet2 executable**, **photo folder**, **video folder**, and **FFmpeg/FFprobe**. After that, you can enter just a filename from the saved photo folder or a full image path. Wizard prompts are currently in German.
 
-For each video, choose duration, FPS, resolution, format, seamless loop, title, subtitle and music. **Press Enter to accept a default**; video preferences are saved for the next run. Titles and subtitles are entered separately for each photo. `-` clears an optional field. Use `zufall` (random) to generate fresh ambient music for each render.
+For each video, choose a star-flight profile, duration, FPS, resolution, format, seamless loop, title, subtitle and music style. **Press Enter to accept a default**; video preferences are saved for the next run. Titles and subtitles are entered separately for each photo. `-` clears an optional field. Use music style `random` and seed `zufall` for fresh arrangements.
 
 An optional menu controls background zoom, rotation, lateral star motion, star count, brightness, loop pace, volume and text size. Before rendering, the wizard shows your choices and asks whether to start. Replacing an existing video requires explicit confirmation.
 
@@ -88,6 +88,8 @@ Append these options to your launch command:
 
 | Goal | Option |
 |---|---|
+| Star-flight profile | `--profile relax`, `drift` or `explore` |
+| Ambient style | `--music-style random`, `warm`, `deep`, `shimmer`, `pulse` or `classic` |
 | Longer, slower loop video | `--duration 45` |
 | Landscape / square format | `--format landscape` / `--format square` |
 | Resolution | `--resolution 720p`, `1080p` or `4k` |
@@ -107,6 +109,39 @@ Append these options to your launch command:
 ```
 
 Without these options, text overlays remain disabled in the recommended setup.
+
+### Star-flight profiles
+
+All three profiles start with **30 seconds, vertical 1080p, 30 FPS, individual photo-derived stars, a perfect loop and ambient music**. They keep natural colors and add no visual effects.
+
+| Profile | Appearance |
+|---|---|
+| `relax` | Gentle background movement, fewer flying stars and little sideways drift |
+| `drift` | More pronounced sideways flight with a gentle turn |
+| `explore` | Tighter framing, more stars and stronger background approach |
+
+For example, append **`--profile drift --music-style shimmer`** to your command. In the wizard, select the profile before the video settings; `custom` keeps your existing settings. Switching profiles loads their defaults, while accepting the saved profile preserves your edits. Duration, FPS, format and other CLI options can still override profile defaults.
+
+Each profile adds a bounded variation of direction, rotation, zoom and star count. Use `--profile-seed 123` to replay it or `--no-profile-variation` for fixed profile values. The music seed is independent. A profile in a config file supplies defaults for that file; an explicit CLI profile overrides the file before individual CLI options.
+
+### Ambient music styles
+
+| Style | Sound |
+|---|---|
+| `warm` | Soft major/minor pads and a gentle bass foundation |
+| `deep` | Low, slow drone chords with a darker register |
+| `shimmer` | Airy higher pads and sparse, soft bell notes |
+| `pulse` | Rounded synth tones with a gentle repeating arpeggio |
+
+`random` is the default: each render chooses a style as well as a new key, chord order, timing and sound details. Select a style to keep its character; `--seed 1234` reproduces the arrangement. `classic` retains the previous synth and its `audio.harmony` / `audio.accents` controls. `audio.transpose` applies to all styles. Music is generated locally without recorded samples; the existing loop crossfade remains active.
+
+Listen before rendering a video (no StarNet or FFmpeg needed):
+
+```powershell
+python -m astromotion.music --style shimmer --seed 1234 --duration 12 --output shimmer_preview.wav
+```
+
+The render log and `render_report.json` record the actual profile variation seed and chosen music style/seed. `--print-config` shows the configured values before random choices are resolved.
 
 **Loop pace:** With the same settings, movement is spread over the video duration. A 45-second loop feels slower than a 30-second loop; a 2-second test compresses the entire flight. `--speed` controls background movement, not the overall pace of individual star flight.
 
@@ -129,6 +164,7 @@ Edit the values in `my_config.yaml`, then launch with **`--config my_config.yaml
 | `starfield.foreground_gain` | `1.15` | Brightness of the flying stars |
 | `starfield.seed` | `2026` | Reproducible artistic depth distribution |
 | `audio.gain` | `0.7` | Audio volume |
+| `audio.style` | `random` | Ambient instrumentation and arrangement |
 | `audio.seed` | `null` | Fresh ambient music per render; an integer repeats a variation |
 
 Flying-star colors come from the StarNet2 residual. Highly colored residuals can look exaggerated when enlarged, so their color strength defaults to `0.6`. This adjustment preserves the stars' luminance, profiles and motion; it does not change the background colors. Use a lower value for more neutral stars or `1` for the previous full color strength. The wizard exposes this setting in its optional menu.

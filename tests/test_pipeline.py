@@ -199,7 +199,7 @@ def test_ambient_harmony_variants_change_pitch_material_without_clipping(tmp_pat
     results = []
     for harmony in ("original", "floating", "dusk"):
         path = tmp_path / (harmony + ".wav")
-        synthesize_ambient(path, 1.25, Audio(seed=73, harmony=harmony, transpose=2))
+        synthesize_ambient(path, 1.25, Audio(seed=73, style="classic", harmony=harmony, transpose=2))
         with wave.open(str(path)) as wav:
             pcm = np.frombuffer(wav.readframes(wav.getnframes()), dtype="<i2")
             assert wav.getnchannels() == 2 and wav.getnframes() == 60000

@@ -19,6 +19,7 @@ from .encoding import VideoEncoder, resolve_binary
 from .imaging import load_image, resize_work, save_png, to_srgb
 from .intelligence import resolve_cinematic
 from .music import resolve_audio_seed, synthesize_ambient
+from .profiles import resolve_profile_variation
 from .looping import camera_phase, prepare_audio_loop
 from .separation import extract_layers, run_starnet
 from .starfield import PerspectiveStars
@@ -35,6 +36,8 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
     Diagnostic files live beside the output under <stem>_assets/.
     """
     cfg.validate()
+    profile_variation_requested = cfg.profile != "custom" and cfg.profile_variation
+    cfg = resolve_profile_variation(cfg)
     if cfg.audio.mode == "ambient":
         cfg = replace(cfg, audio=resolve_audio_seed(cfg.audio))
     input_path, output = input_path.resolve(), output.resolve()
@@ -60,8 +63,11 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
     cv2.setNumThreads(2)
     start = time.monotonic()
     try:
+        if cfg.profile != "custom":
+            LOG.info("Sternflug-Profil: %s; Variation: %s; Profil-Seed: %s.",
+                     cfg.profile, profile_variation_requested, cfg.profile_seed)
         if cfg.audio.mode == "ambient":
-            LOG.info("Ambient-Musik: Seed %d (mit --seed wiederholbar).", cfg.audio.seed)
+            LOG.info("Ambient-Musik: Stil %s, Seed %d (mit --seed wiederholbar).", cfg.audio.style, cfg.audio.seed)
         original_full = load_image(input_path, cfg.max_input_pixels)
         original_shape = original_full.shape
         original = resize_work(original_full, cfg.work_long_edge)
@@ -132,6 +138,8 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
                   "base_scale": animator.base_scale, "actual_duration": cfg.actual_duration,
                   "elapsed_seconds": time.monotonic() - start, "probe": encoder.info,
                   "cinematic_intelligence": cinematic_metrics,
+                  "profile": {"name": cfg.profile, "variation": profile_variation_requested,
+                              "seed": cfg.profile_seed},
                   "layer_encoding": "sRGB PNG; decode sRGB to linear then use separation.blend"}
         report["animation_mode"] = "starnet_starfield" if particles else "starnet_layers"
         if particles:

@@ -53,6 +53,19 @@ def ask_number(label: str, default, low: float, high: float, *, integer: bool = 
 def ask_yes(label: str, default: bool = False) -> bool:
     return ask_choice(label, ('j', 'n'), 'j' if default else 'n') == 'j'
 
+def ask_seed(label: str, default: int | None) -> int | None:
+    while True:
+        raw = ask_text(label + ' (zufall oder ganze Zahl)', str(default) if default is not None else 'zufall')
+        if raw.lower() == 'zufall' or not raw:
+            return None
+        try:
+            seed = int(raw)
+            if 0 <= seed < 2**32:
+                return seed
+        except ValueError:
+            pass
+        print('Bitte zufall oder eine ganze Zahl von 0 bis 4294967295 eingeben.')
+
 
 def ask_file(label: str, default: str = '', *, base: Path = ROOT, suffixes=None) -> Path:
     while True:
@@ -149,7 +162,7 @@ def validate_paths(settings: dict) -> None:
 
 
 def collect_render(settings: dict, supplied_input: Path | None = None):
-    from astromotion.config import load_config
+    from astromotion.config import MUSIC_STYLES, PROFILES, apply_profile, load_config
 
     paths = settings['paths']
     cfg = load_config(PRESET, settings.get('defaults', {}))
@@ -164,6 +177,10 @@ def collect_render(settings: dict, supplied_input: Path | None = None):
             raise ValueError('Das angegebene Bild ist keine vorhandene JPG-, PNG- oder TIFF-Datei.')
     else:
         image = ask_file('Bildname oder vollstaendiger Bildpfad', base=input_dir, suffixes=IMAGE_SUFFIXES)
+    print('Profile: relax = sehr ruhig, drift = seitlicher Flug, explore = naeherer Ausschnitt; custom = eigene Vorgaben.')
+    profile = ask_choice('Sternflug-Profil', tuple(PROFILES), cfg.profile)
+    if profile != cfg.profile:
+        cfg = apply_profile(cfg, profile)
     cfg.duration = ask_number('Videolaenge in Sekunden (laenger = langsamerer Loop)', cfg.duration, 1, 3600)
     cfg.fps = ask_choice('FPS', (24, 30, 60), cfg.fps)
     cfg.resolution = ask_choice('Aufloesung', ('720p', '1080p', '4k'), cfg.resolution)
@@ -180,20 +197,14 @@ def collect_render(settings: dict, supplied_input: Path | None = None):
     if cfg.audio.mode == 'file':
         cfg.audio.file = str(ask_file('Eigene Musikdatei', cfg.audio.file or '', suffixes={'.mp3', '.wav'}))
     elif cfg.audio.mode == 'ambient':
-        while True:
-            raw = ask_text('Musik-Seed (zufall oder ganze Zahl)', str(cfg.audio.seed) if cfg.audio.seed is not None else 'zufall')
-            if raw.lower() == 'zufall' or not raw:
-                cfg.audio.seed = None
-                break
-            try:
-                seed = int(raw)
-                if 0 <= seed < 2**32:
-                    cfg.audio.seed = seed
-                    break
-            except ValueError:
-                pass
-            print('Bitte zufall oder eine ganze Zahl von 0 bis 4294967295 eingeben.')
+        print('Musikstile: warm = weiche Flaechen, deep = tiefe Drones, shimmer = helle Glocken, pulse = sanftes Arpeggio.')
+        cfg.audio.style = ask_choice('Musikstil', MUSIC_STYLES, cfg.audio.style)
+        cfg.audio.seed = ask_seed('Musik-Seed', cfg.audio.seed)
     if ask_yes('Bewegung, Lautstaerke und Textdarstellung anpassen'):
+        if cfg.profile != 'custom':
+            cfg.profile_variation = ask_yes('Leichte zufaellige Profilvariation', cfg.profile_variation)
+            if cfg.profile_variation:
+                cfg.profile_seed = ask_seed('Profil-Seed', cfg.profile_seed)
         cfg.motion.zoom = ask_number('Hintergrundzoom (0.14 = 14 %)', cfg.motion.zoom, 0, .5)
         cfg.motion.rotation_deg = ask_number('Hintergrunddrehung in Grad', cfg.motion.rotation_deg, -10, 10)
         cfg.starfield.drift_x = ask_number('Sternflug seitlich X', cfg.starfield.drift_x, -.5, .5)
@@ -266,7 +277,9 @@ def main(argv=None) -> int:
         validate_paths(settings)
         image, output, cfg, overwrite = collect_render(settings, args.input)
         print(f'\nBild: {image}\nVideo: {output}\n{cfg.duration:g} s, {cfg.fps} FPS, '
-              f'{cfg.resolution}, {cfg.format}, Loop: {"an" if cfg.loop.enabled else "aus"}, Musik: {cfg.audio.mode}')
+              f'{cfg.resolution}, {cfg.format}, Loop: {"an" if cfg.loop.enabled else "aus"}, Profil: {cfg.profile}, Musik: {cfg.audio.mode}')
+        if cfg.audio.mode == 'ambient':
+            print(f'Musikstil: {cfg.audio.style}')
         if cfg.caption.enabled:
             print(f'Text: {cfg.caption.title}' + (f' / {cfg.caption.subtitle}' if cfg.caption.subtitle else ''))
         if not args.dry_run and not ask_yes('Rendering starten', True):

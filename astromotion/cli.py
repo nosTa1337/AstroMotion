@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 import time
 
-from .config import PRESETS, load_config
+from .config import MUSIC_STYLES, PRESETS, PROFILES, load_config
 from .pipeline import render
 
 
@@ -21,6 +21,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, help="YAML-/JSON-Datei")
     parser.add_argument("--output", type=Path, help="MP4-Ausgabe (Standard: <input>_astromotion.mp4)")
     parser.add_argument("--preset", choices=tuple(PRESETS))
+    parser.add_argument("--profile", choices=tuple(PROFILES), help="Sternflug: relax/drift/explore; custom behaelt Einstellungen")
+    parser.add_argument("--profile-seed", type=int, help="Leichte Profilvariation reproduzieren")
+    parser.add_argument("--profile-variation", action=argparse.BooleanOptionalAction, default=None,
+                        help="Kleine zufaellige Profilvariation; --no-profile-variation fuer feste Werte")
     parser.add_argument("--format", choices=("vertical", "square", "landscape"))
     parser.add_argument("--resolution", choices=("720p", "1080p", "4k"))
     parser.add_argument("--duration", type=float)
@@ -28,6 +32,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="Nahtloser Video-/Musik-Loop; --no-loop deaktiviert ihn")
     parser.add_argument("--fps", type=int, choices=(24, 30, 60))
     parser.add_argument("--music", choices=("none", "ambient"))
+    parser.add_argument("--music-style", choices=MUSIC_STYLES, help="Ambient-Klangstil; random waehlt pro Rendering neu")
     parser.add_argument("--audio", type=Path, help="Eigene MP3-/WAV-Datei (hat Vorrang vor --music)")
     parser.add_argument("--seed", type=int, help="Musik reproduzieren; ohne festen Seed zufällige Variante")
     parser.add_argument("--auto-focus", action=argparse.BooleanOptionalAction, default=None,
@@ -50,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(levelname)s: %(message)s")
-    overrides = {k: getattr(args, k) for k in ("preset", "format", "resolution", "duration", "fps")
+    overrides = {k: getattr(args, k) for k in ("preset", "profile", "profile_seed", "profile_variation", "format", "resolution", "duration", "fps")
                  if getattr(args, k) is not None}
     if args.loop is not None:
         overrides["loop"] = {"enabled": args.loop}
@@ -71,7 +76,8 @@ def main(argv: list[str] | None = None) -> int:
         "separation": {"executable": args.starnet, "mode": args.starnet_mode},
         "motion": {"parallax": args.parallax, "speed": args.speed},
         "audio": {"mode": "file" if args.audio else args.music,
-                  "file": str(args.audio.resolve()) if args.audio else None, "seed": args.seed},
+                  "file": str(args.audio.resolve()) if args.audio else None, "seed": args.seed,
+                  "style": args.music_style},
     }.items():
         clean = {k: v for k, v in values.items() if v is not None}
         if clean:

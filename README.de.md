@@ -28,7 +28,7 @@ Unter Windows **`start_wizard.bat`** doppelklicken oder ein Bild darauf ziehen. 
 
 Beim ersten Start fragt das Skript nach der **StarNet2-EXE**, dem **Bilderordner**, dem **Videoordner** und **FFmpeg/FFprobe**. Danach reicht der Bildname aus dem gespeicherten Ordner oder ein vollständiger Bildpfad.
 
-Pro Video wählst du Länge, FPS, Auflösung, Format, Perfect Loop, Titel, Untertitel und Musik. **Enter übernimmt die Vorgabe**; die Videoeinstellungen werden für den nächsten Start gespeichert. Titel und Untertitel bleiben an das jeweilige Bild gebunden und werden jedes Mal neu abgefragt. `-` leert ein optionales Feld. Ambient-Musik bleibt mit `zufall` bei jedem Render neu.
+Pro Video wählst du Sternflug-Profil, Länge, FPS, Auflösung, Format, Perfect Loop, Titel, Untertitel und Musikstil. **Enter übernimmt die Vorgabe**; die Videoeinstellungen werden für den nächsten Start gespeichert. Titel und Untertitel bleiben an das jeweilige Bild gebunden und werden jedes Mal neu abgefragt. `-` leert ein optionales Feld. Musikstil `random` und Seed `zufall` erzeugen neue Arrangements.
 
 Ein optionales Menü bietet Hintergrundzoom, Drehung, seitliche Sternbewegung, Sternanzahl, Helligkeit, Loop-Tempo, Lautstärke und Textgröße. Vor dem Rendern zeigt das Skript die Auswahl und fragt nach dem Start. Vorhandene Videos werden nur nach ausdrücklicher Bestätigung ersetzt.
 
@@ -88,6 +88,8 @@ Die folgenden Optionen an den Startbefehl anhängen:
 
 | Wunsch | Option |
 |---|---|
+| Sternflug-Profil | `--profile relax`, `drift` oder `explore` |
+| Ambient-Stil | `--music-style random`, `warm`, `deep`, `shimmer`, `pulse` oder `classic` |
 | Längeres, langsameres Loop-Video | `--duration 45` |
 | Querformat / quadratisch | `--format landscape` / `--format square` |
 | Auflösung | `--resolution 720p`, `1080p` oder `4k` |
@@ -107,6 +109,39 @@ Die folgenden Optionen an den Startbefehl anhängen:
 ```
 
 Ohne diese Optionen bleibt die Texteinblendung im empfohlenen Setup deaktiviert.
+
+### Sternflug-Profile
+
+Alle drei Profile beginnen mit **30 Sekunden, vertikalem 1080p, 30 FPS, individuellen Sternen aus dem Foto, Perfect Loop und Ambient-Musik**. Sie behalten natürliche Farben bei und ergänzen keine Bildeffekte.
+
+| Profil | Wirkung |
+|---|---|
+| `relax` | Sehr ruhiger Hintergrund, weniger fliegende Sterne und wenig seitliche Bewegung |
+| `drift` | Deutlicherer seitlicher Sternflug mit sanfter Drehung |
+| `explore` | Engerer Ausschnitt, mehr Sterne und stärkere Annäherung des Hintergrunds |
+
+Zum Beispiel **`--profile drift --music-style shimmer`** an den Startbefehl anhängen. Im Wizard das Profil vor den Videoeinstellungen wählen; `custom` behält die eigenen Vorgaben. Ein Profilwechsel lädt dessen Standardwerte; beim Beibehalten des gespeicherten Profils bleiben eigene Anpassungen erhalten. Dauer, FPS, Format und andere CLI-Optionen können Profilvorgaben weiterhin überschreiben.
+
+Die Profile variieren Richtung, Drehung, Zoom und Sternanzahl in kleinen Grenzen. `--profile-seed 123` wiederholt die Variation; `--no-profile-variation` verwendet feste Profilwerte. Der Musik-Seed ist unabhängig davon. Ein Profil in der Konfigurationsdatei liefert Vorgaben für diese Datei; ein ausdrücklich gewähltes CLI-Profil überschreibt die Datei vor einzelnen CLI-Optionen.
+
+### Ambient-Musikstile
+
+| Stil | Klang |
+|---|---|
+| `warm` | Weiche Dur-/Moll-Flächen mit sanftem Bass |
+| `deep` | Tiefe, langsame Drone-Akkorde mit dunklerer Tonlage |
+| `shimmer` | Helle, luftige Flächen und einzelne weiche Glockentöne |
+| `pulse` | Runde Synthesizer-Töne mit einem sanften, wiederkehrenden Arpeggio |
+
+`random` ist die Vorgabe: Pro Rendering werden Stil, Tonart, Akkordreihenfolge, Timing und Klangdetails neu gewählt. Ein fester Stil behält seinen Charakter; `--seed 1234` wiederholt das Arrangement. `classic` erhält den bisherigen Synth samt `audio.harmony` / `audio.accents`; `audio.transpose` gilt für alle Stile. Die Musik entsteht lokal ohne aufgenommene Samples. Die bestehende Loop-Überblendung bleibt aktiv.
+
+Vor dem Videorendering probehören (ohne StarNet oder FFmpeg):
+
+```powershell
+python -m astromotion.music --style shimmer --seed 1234 --duration 12 --output shimmer_preview.wav
+```
+
+Render-Protokoll und `render_report.json` enthalten den tatsächlichen Profil-Seed und den gewählten Musikstil samt Seed. `--print-config` zeigt die eingestellten Werte vor dem Auflösen der Zufallswerte.
 
 **Tempo im Loop:** Bei gleicher Konfiguration verteilt sich die Bewegung auf die Videolänge. 45 Sekunden wirken langsamer als 30 Sekunden; ein 2-Sekunden-Test komprimiert den gesamten Flug. `--speed` steuert die Hintergrundbewegung und ist kein allgemeiner Tempo-Regler für den Sternflug.
 
@@ -129,6 +164,7 @@ Die Werte in `meine_config.yaml` bearbeiten und im Startbefehl **`--config meine
 | `starfield.foreground_gain` | `1.15` | Helligkeit der fliegenden Sterne |
 | `starfield.seed` | `2026` | Wiederholbare künstlerische Tiefenverteilung der Sterne |
 | `audio.gain` | `0.7` | Lautstärke |
+| `audio.style` | `random` | Instrumentierung und Arrangement der Ambient-Musik |
 | `audio.seed` | `null` | Neue Ambient-Musik pro Rendering; eine Ganzzahl wiederholt die Variante |
 
 Die Farben der fliegenden Sterne stammen aus dem StarNet2-Residuum. Stark gefärbte Reste können beim Vergrößern übertrieben wirken; deshalb beträgt ihre Farbstärke standardmäßig `0.6`. Die Anpassung erhält Helligkeit, Sternprofile und Bewegung und verändert keine Hintergrundfarben. Kleinere Werte ergeben neutralere Sterne; `1` entspricht der bisherigen vollen Farbstärke. Im Wizard liegt die Einstellung im optionalen Menü.
