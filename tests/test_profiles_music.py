@@ -64,6 +64,9 @@ def test_profile_variation_is_bounded_reproducible_and_keeps_the_input(monkeypat
     unchanged = asdict(cfg)
     a, b = resolve_profile_variation(cfg), resolve_profile_variation(cfg)
     assert asdict(a) == asdict(b) and asdict(cfg) == unchanged
+    assert resolve_profile_variation(a) is a
+    replay = load_config(overrides=asdict(a))
+    assert asdict(resolve_profile_variation(replay)) == asdict(a)
     outcomes = []
     for seed in range(16):
         varied = resolve_profile_variation(replace(cfg, profile_seed=seed))

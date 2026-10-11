@@ -22,6 +22,7 @@ def resolve_profile_variation(cfg: Config) -> Config:
         drift_x=float(np.clip(cfg.starfield.drift_x * direction * rng.uniform(.9, 1.1), -.5, .5)),
         drift_y=float(np.clip(cfg.starfield.drift_y * int(rng.choice([-1, 1])) * rng.uniform(.9, 1.1), -.5, .5)),
         rotation_deg=float(np.clip(cfg.starfield.rotation_deg * direction * rng.uniform(.9, 1.1), -15, 15)))
-    result = replace(cfg, profile_seed=seed, motion=motion, starfield=stars)
+    # The effective report config can be reused without varying it a second time.
+    result = replace(cfg, profile_seed=seed, profile_variation=False, motion=motion, starfield=stars)
     result.validate()
     return result

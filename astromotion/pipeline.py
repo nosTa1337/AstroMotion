@@ -36,6 +36,7 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
     Diagnostic files live beside the output under <stem>_assets/.
     """
     cfg.validate()
+    profile_variation_requested = cfg.profile != "custom" and cfg.profile_variation
     cfg = resolve_profile_variation(cfg)
     if cfg.audio.mode == "ambient":
         cfg = replace(cfg, audio=resolve_audio_seed(cfg.audio))
@@ -64,7 +65,7 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
     try:
         if cfg.profile != "custom":
             LOG.info("Sternflug-Profil: %s; Variation: %s; Profil-Seed: %s.",
-                     cfg.profile, cfg.profile_variation, cfg.profile_seed)
+                     cfg.profile, profile_variation_requested, cfg.profile_seed)
         if cfg.audio.mode == "ambient":
             LOG.info("Ambient-Musik: Stil %s, Seed %d (mit --seed wiederholbar).", cfg.audio.style, cfg.audio.seed)
         original_full = load_image(input_path, cfg.max_input_pixels)
@@ -137,6 +138,8 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
                   "base_scale": animator.base_scale, "actual_duration": cfg.actual_duration,
                   "elapsed_seconds": time.monotonic() - start, "probe": encoder.info,
                   "cinematic_intelligence": cinematic_metrics,
+                  "profile": {"name": cfg.profile, "variation": profile_variation_requested,
+                              "seed": cfg.profile_seed},
                   "layer_encoding": "sRGB PNG; decode sRGB to linear then use separation.blend"}
         report["animation_mode"] = "starnet_starfield" if particles else "starnet_layers"
         if particles:
