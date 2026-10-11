@@ -22,6 +22,43 @@ from .starprofiles import StarProfiles, soften_star_colors
 LOG = logging.getLogger(__name__)
 
 
+def _compact_star_cores(lum: np.ndarray, candidates: np.ndarray) -> tuple[np.ndarray, int]:
+    """One core per maximum plateau; reject one-dimensional light ridges.
+
+    Compact stars have local gradients in both directions, including saturated
+    cores and mildly elongated stars. A spike/seam has gradients mainly across
+    the ridge, even when small brightness ripples produce several local maxima.
+    This selects particles only: it never modifies the StarNet residual.
+    """
+    count, labels, regions, centers = cv2.connectedComponentsWithStats(
+        candidates.astype(np.uint8), connectivity=8)
+    cores = np.zeros_like(candidates)
+    rejected = 0
+    h, w = lum.shape
+    for label in range(1, count):
+        x, y, width, height, _ = regions[label]
+        patch = lum[max(0, y - 3):min(h, y + height + 3),
+                    max(0, x - 3):min(w, x + width + 3)]
+        # Ignore the patch boundary: reflected padding would give diagonal
+        # ridges artificial gradients in a second direction.
+        dx = cv2.Sobel(patch, cv2.CV_32F, 1, 0, ksize=3)[1:-1, 1:-1]
+        dy = cv2.Sobel(patch, cv2.CV_32F, 0, 1, ksize=3)[1:-1, 1:-1]
+        xx = float(np.sum(dx * dx, dtype=np.float64))
+        yy = float(np.sum(dy * dy, dtype=np.float64))
+        xy = float(np.sum(dx * dy, dtype=np.float64))
+        trace = xx + yy
+        gap = math.sqrt((xx - yy) ** 2 + 4 * xy ** 2)
+        # Eigenvalue ratio is rotation-independent; allow a generous 10:1.
+        if trace <= 1e-16 or trace - gap < .1 * (trace + gap):
+            rejected += 1
+            continue
+        py, px = np.nonzero(labels[y:y + height, x:x + width] == label)
+        cx, cy = centers[label]
+        nearest = np.argmin((px + x - cx) ** 2 + (py + y - cy) ** 2)
+        cores[py[nearest] + y, px[nearest] + x] = True
+    return cores, rejected
+
+
 class PerspectiveStars:
     def __init__(self, layers: Layers, animator: Animator, cfg: Starfield, fps: int,
                  loop: Loop | None = None):
@@ -36,8 +73,6 @@ class PerspectiveStars:
         lum = source @ np.array([.2126, .7152, .0722], np.float32)
         lum = cv2.GaussianBlur(lum, (0, 0), .45)
         rng = np.random.default_rng(cfg.seed)
-        # Tiny deterministic jitter resolves equal-valued plateaus into one core.
-        lum += rng.random(lum.shape, dtype=np.float32) * 1e-9
         maxima = cv2.dilate(lum, np.ones((5, 5), np.uint8))
         neutral = source.min(axis=2) / np.maximum(peak, 1e-6)
         # Very blue/red stars can fail the original RGB-neutrality threshold.
@@ -46,6 +81,7 @@ class PerspectiveStars:
             (neutral > .12) | ((peak > .035) & (lum > .012)))
         mask[:3] = mask[-3:] = False
         mask[:, :3] = mask[:, -3:] = False
+        mask, rejected = _compact_star_cores(lum, mask)
         y, x = np.nonzero(mask)
         if len(x) == 0:
             raise ValueError("Keine verlässlichen Sternkerne für den perspektivischen Flug gefunden.")
@@ -91,6 +127,7 @@ class PerspectiveStars:
         self.brightness = (.45 + .55 * np.clip(np.sqrt(strength / .25), 0, 1)).astype(np.float32)
         self.size_factor = rng.uniform(.8, 1.3, self.count).astype(np.float32)
         self.stats: dict[str, float] = {"detected_star_particles": float(self.count)}
+        self.stats["rejected_noncompact_star_candidates"] = float(rejected)
         self.profiles = StarProfiles(source, x, y, mask, cfg.color_strength) if cfg.photo_profiles else None
         self.featured = np.zeros(self.count, np.float32)
         # Feature only a few existing stars whose paths skim the viewport edge.
