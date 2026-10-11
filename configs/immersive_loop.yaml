@@ -23,6 +23,7 @@ effects:
   twinkle: 0.0
 audio:
   mode: ambient
+  style: random
   seed: null
   harmony: floating
   transpose: 0
