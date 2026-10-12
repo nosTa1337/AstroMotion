@@ -26,9 +26,11 @@ Unter Windows **`start_wizard.bat`** doppelklicken oder ein Bild darauf ziehen. 
 .\.venv\Scripts\python.exe wizard.py
 ```
 
-Beim ersten Start fragt das Skript nach der **StarNet2-EXE**, dem **Bilderordner**, dem **Videoordner** und **FFmpeg/FFprobe**. Danach reicht der Bildname aus dem gespeicherten Ordner oder ein vollständiger Bildpfad.
+Am Anfang wählst du die **Sprache: English (`en`) oder Deutsch (`de`)**. Beim ersten Start ist Englisch die Vorgabe; deine Auswahl wird gespeichert und beim nächsten Start wieder angeboten. Direkt ohne Sprachfrage starten: `start_wizard.bat --language de` oder `start_wizard.bat --language en`. Linux/macOS: `python wizard.py --language de` beziehungsweise `--language en`.
 
-Pro Video wählst du Sternflug-Profil, Länge, FPS, Auflösung, Format, Perfect Loop, Titel, Untertitel und Musikstil. **Enter übernimmt die Vorgabe**; die Videoeinstellungen werden für den nächsten Start gespeichert. Titel und Untertitel bleiben an das jeweilige Bild gebunden und werden jedes Mal neu abgefragt. `-` leert ein optionales Feld. Musikstil `random` und Seed `zufall` erzeugen neue Arrangements.
+Beim ersten Start fragt das Skript nach der **StarNet2-EXE**, dem **Bilderordner**, dem **Videoordner** und **FFmpeg/FFprobe**. Danach reicht der Bildname aus dem gespeicherten Ordner oder ein vollständiger Bildpfad. Bereits gespeicherte Pfade und Videoeinstellungen bleiben beim Sprachwechsel erhalten.
+
+Pro Video wählst du Sternflug-Profil, Länge, FPS, Auflösung, Format, Perfect Loop, Titel, Untertitel und Musikstil. **Enter übernimmt die Vorgabe**; die Videoeinstellungen werden für den nächsten Start gespeichert. Titel und Untertitel bleiben an das jeweilige Bild gebunden und werden jedes Mal neu abgefragt. `-` leert ein optionales Feld. Musikstil `random` und Seed `zufall` (`random` auf Englisch) erzeugen neue Arrangements. Ja/Nein-Abfragen zeigen auf Deutsch `j/n`, auf Englisch `y/n`; beide Schreibweisen funktionieren. Profilnamen, Musikstile und Konfigurationswerte bleiben in beiden Sprachen gleich.
 
 Ein optionales Menü bietet Hintergrundzoom, Drehung, seitliche Sternbewegung, Sternanzahl, Helligkeit, Loop-Tempo, Lautstärke und Textgröße. Vor dem Rendern zeigt das Skript die Auswahl und fragt nach dem Start. Vorhandene Videos werden nur nach ausdrücklicher Bestätigung ersetzt.
 

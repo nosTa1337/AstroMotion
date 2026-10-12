@@ -26,9 +26,11 @@ On Windows, double-click **`start_wizard.bat`** or drag a photo onto it. Alterna
 .\.venv\Scripts\python.exe wizard.py
 ```
 
-On the first run, the wizard asks for the **StarNet2 executable**, **photo folder**, **video folder**, and **FFmpeg/FFprobe**. After that, you can enter just a filename from the saved photo folder or a full image path. Wizard prompts are currently in German.
+The wizard begins with a **language choice: English (`en`) or Deutsch (`de`)**. English is the default on first use; your choice is saved and offered as the default next time. To skip the language question, run `start_wizard.bat --language en` or `start_wizard.bat --language de`. On Linux/macOS, use `python wizard.py --language en` or `python wizard.py --language de`.
 
-For each video, choose a star-flight profile, duration, FPS, resolution, format, seamless loop, title, subtitle and music style. **Press Enter to accept a default**; video preferences are saved for the next run. Titles and subtitles are entered separately for each photo. `-` clears an optional field. Use music style `random` and seed `zufall` for fresh arrangements.
+On the first run, the wizard asks for the **StarNet2 executable**, **photo folder**, **video folder**, and **FFmpeg/FFprobe**. After that, you can enter just a filename from the saved photo folder or a full image path. Existing saved paths and video preferences remain usable when switching languages.
+
+For each video, choose a star-flight profile, duration, FPS, resolution, format, seamless loop, title, subtitle and music style. **Press Enter to accept a default**; video preferences are saved for the next run. Titles and subtitles are entered separately for each photo. `-` clears an optional field. Use music style `random` and seed `random` (`zufall` in German) for fresh arrangements. Yes/no prompts use `y/n` in English and `j/n` in German; both forms are accepted. Profile names, music styles and configuration values stay the same in both languages.
 
 An optional menu controls background zoom, rotation, lateral star motion, star count, brightness, loop pace, volume and text size. Before rendering, the wizard shows your choices and asks whether to start. Replacing an existing video requires explicit confirmation.
 
