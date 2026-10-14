@@ -1,6 +1,17 @@
 """English and German text for the guided launcher; no render dependencies."""
 
 GERMAN = {
+    'Invalid recent settings': 'Ungültige zuletzt verwendete Einstellungen',
+    '\nRecent settings (newest first). Choose a template, then edit any value.': '\nLetzte Einstellungen (neueste zuerst). Vorlage wählen, danach Werte anpassen.',
+    '0: Current defaults': '0: Aktuelle Vorgaben',
+    'Settings template': 'Einstellungsvorlage',
+    'Star passes: {passes}; music: {style}': 'Sterndurchläufe: {passes}; Musik: {style}',
+    'Choose the full-video filename. The preview adds _preview before .mp4.': 'Dateinamen für das volle Video wählen. Die Vorschau ergänzt _preview vor .mp4.',
+    '360p preview with full duration and FPS; --no-preview renders the full video': '360p-Vorschau mit voller Dauer und FPS; --no-preview rendert das volle Video',
+    'Render mode': 'Ausgabe (final = volles Video, preview = Vorschau)',
+    'Preview: {width} x {height}; full video: {resolution}. Duration and FPS are unchanged.': 'Vorschau: {width} x {height}; volles Video: {resolution}. Dauer und FPS bleiben gleich.',
+    'Preview ready: {path}': 'Vorschau fertig: {path}',
+    'Render the full-resolution video now with the same motion and music': 'Jetzt das Video in voller Auflösung mit gleicher Bewegung und Musik rendern',
     'Options': 'Optionen',
     'Show this help message and exit': 'Diese Hilfe anzeigen und beenden',
     'Please enter one of the displayed values.': 'Bitte einen der angezeigten Werte eingeben.',

@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict
+from dataclasses import asdict, replace
+from datetime import datetime
 import json
 import math
 import os
 from pathlib import Path
+import secrets
 import shutil
 import subprocess
 import sys
@@ -19,6 +21,7 @@ SETTINGS = ROOT / '.astromotion-wizard.json'
 PRESET = ROOT / 'configs' / 'immersive_loop.yaml'
 IMAGE_SUFFIXES = {'.jpg', '.jpeg', '.png', '.tif', '.tiff'}
 LANGUAGE = 'en'
+HISTORY_LIMIT = 5
 
 
 def _t(message: str, **values) -> str:
@@ -143,6 +146,14 @@ def load_settings(path: Path) -> dict:
             raise ValueError(_t('Invalid paths'))
         if data.get('language', 'en') not in ('en', 'de'):
             raise ValueError(_t('Unsupported wizard language'))
+        history = data.get('history', [])
+        if not isinstance(history, list) or any(
+                not isinstance(entry, dict) or not isinstance(entry.get('defaults'), dict)
+                or not isinstance(entry.get('image'), str) or not isinstance(entry.get('saved_at'), str)
+                for entry in history):
+            raise ValueError(_t('Invalid recent settings'))
+        if 'history' in data:
+            data['history'] = history[:HISTORY_LIMIT]
         return data
     except (ValueError, OSError) as exc:
         raise ValueError(_t('Cannot read settings: {error}. Run --setup to configure them again.', error=exc)) from exc
@@ -173,7 +184,8 @@ def configure_paths(old: dict) -> dict:
     ffprobe = ask_binary('FFprobe', paths.get('ffprobe', 'ffprobe'))
     return {'version': 1, 'paths': {'starnet': str(starnet), 'input_dir': str(input_dir),
                                   'output_dir': str(output_dir), 'ffmpeg': ffmpeg, 'ffprobe': ffprobe},
-            'defaults': old.get('defaults', {}), 'language': LANGUAGE}
+            'defaults': old.get('defaults', {}), 'language': LANGUAGE,
+            'history': old.get('history', [])}
 
 
 def validate_paths(settings: dict) -> None:
@@ -188,14 +200,33 @@ def validate_paths(settings: dict) -> None:
     Path(paths['output_dir']).mkdir(parents=True, exist_ok=True)
 
 
-def collect_render(settings: dict, supplied_input: Path | None = None):
-    from astromotion.config import MUSIC_STYLES, PROFILES, apply_profile, load_config
+def choose_settings_template(settings: dict) -> dict:
+    history = settings.get('history', [])[:HISTORY_LIMIT]
+    if not history:
+        return settings.get('defaults', {})
+    print(_t('\nRecent settings (newest first). Choose a template, then edit any value.'))
+    print(_t('0: Current defaults'))
+    for number, entry in enumerate(history, 1):
+        cfg = entry['defaults']
+        print(f"{number}: {entry['saved_at']} | {entry['image']} | "
+              f"{cfg.get('profile', 'custom')} | {cfg.get('duration', 30):g} s | "
+              f"{cfg.get('fps', 30)} FPS | {cfg.get('resolution', '1080p')} | "
+              f"{cfg.get('format', 'vertical')} | "
+              + _t('Star passes: {passes}; music: {style}',
+                   passes=cfg.get('loop', {}).get('star_cycles', 1),
+                   style=cfg.get('audio', {}).get('style', 'random')))
+    number = ask_choice(_t('Settings template'), tuple(range(len(history) + 1)), 0)
+    return settings.get('defaults', {}) if number == 0 else history[number - 1]['defaults']
+
+
+def preview_output_path(output: Path) -> Path:
+    return output.with_name(output.stem + '_preview.mp4')
+
+
+def collect_render(settings: dict, supplied_input: Path | None = None, *, preview: bool = False):
+    from astromotion.config import MUSIC_STYLES, PROFILES, RESOLUTIONS, apply_profile, load_config
 
     paths = settings['paths']
-    cfg = load_config(PRESET, settings.get('defaults', {}))
-    cfg.separation.executable = paths['starnet']
-    cfg.encoding.ffmpeg, cfg.encoding.ffprobe = paths['ffmpeg'], paths['ffprobe']
-    cfg.caption.enabled, cfg.caption.title, cfg.caption.subtitle = False, '', ''
     input_dir = Path(paths['input_dir'])
     print(_t('\nVideo settings. Enter = default, - = clear an optional field. Ctrl+C = cancel.'))
     if supplied_input:
@@ -204,13 +235,17 @@ def collect_render(settings: dict, supplied_input: Path | None = None):
             raise ValueError(_t('The supplied image is not an existing JPG, PNG or TIFF file.'))
     else:
         image = ask_file(_t('Image filename or full image path'), base=input_dir, suffixes=IMAGE_SUFFIXES)
+    cfg = load_config(PRESET, choose_settings_template(settings))
+    cfg.separation.executable = paths['starnet']
+    cfg.encoding.ffmpeg, cfg.encoding.ffprobe = paths['ffmpeg'], paths['ffprobe']
+    cfg.caption.enabled, cfg.caption.title, cfg.caption.subtitle = False, '', ''
     print(_t('Profiles: relax = very calm, drift = lateral flight, explore = closer framing; custom = your own settings.'))
     profile = ask_choice(_t('Star-flight profile'), tuple(PROFILES), cfg.profile)
     if profile != cfg.profile:
         cfg = apply_profile(cfg, profile)
     cfg.duration = ask_number(_t('Video duration in seconds (longer = slower loop)'), cfg.duration, 1, 3600)
     cfg.fps = ask_choice('FPS', (24, 30, 60), cfg.fps)
-    cfg.resolution = ask_choice(_t('Resolution'), ('720p', '1080p', '4k'), cfg.resolution)
+    cfg.resolution = ask_choice(_t('Resolution'), RESOLUTIONS, cfg.resolution)
     cfg.format = ask_choice('Format', ('vertical', 'square', 'landscape'), cfg.format)
     cfg.loop.enabled = ask_yes('Perfect Loop', cfg.loop.enabled)
     while True:
@@ -251,16 +286,19 @@ def collect_render(settings: dict, supplied_input: Path | None = None):
             cfg.caption.opacity = ask_number(_t('Text opacity'), cfg.caption.opacity, 0, 1)
     cfg.validate()
     output_dir = Path(paths['output_dir'])
+    if preview:
+        print(_t('Choose the full-video filename. The preview adds _preview before .mp4.'))
     while True:
         output = path_value(ask_text(_t('Output filename'), image.stem + '_astromotion.mp4'), output_dir)
         if output.suffix.lower() != '.mp4' or output == image:
             print(_t('Please choose a different output path ending in .mp4.'))
             continue
-        if output.exists() and not output.is_file():
+        destination = preview_output_path(output) if preview else output
+        if destination.exists() and not destination.is_file():
             print(_t('The output path is a folder. Please choose a filename.'))
             continue
-        overwrite = output.exists() and ask_yes(_t('Video already exists. Replace it'))
-        if output.exists() and not overwrite:
+        overwrite = destination.exists() and ask_yes(_t('Video already exists. Replace it'))
+        if destination.exists() and not overwrite:
             print(_t('Please choose a different output filename.'))
             continue
         return image, output, cfg, overwrite
@@ -271,6 +309,26 @@ def remembered_defaults(cfg) -> dict:
     # Object names belong to the selected image, never to the next photo.
     data['caption'].update(enabled=False, title='', subtitle='')
     return data
+
+
+def remember_recent_settings(settings: dict, image: Path, cfg) -> None:
+    defaults = remembered_defaults(cfg)
+    entry = {'image': image.name, 'saved_at': datetime.now().astimezone().isoformat(timespec='minutes'),
+             'defaults': defaults}
+    # Reusing the same setup moves it to the top rather than filling all five slots.
+    previous = [item for item in settings.get('history', []) if item['defaults'] != defaults]
+    settings['history'] = [entry, *previous][:HISTORY_LIMIT]
+
+
+def paired_render_config(cfg):
+    """Resolve random seeds once so preview and full export share the same run."""
+    from astromotion.music import resolve_audio_seed
+
+    audio = resolve_audio_seed(cfg.audio) if cfg.audio.mode == 'ambient' else cfg.audio
+    seed = cfg.profile_seed
+    if cfg.profile != 'custom' and cfg.profile_variation and seed is None:
+        seed = secrets.randbits(32)
+    return replace(cfg, audio=audio, profile_seed=seed)
 
 
 def render_command(image: Path, output: Path, config_path: Path, overwrite: bool) -> list[str]:
@@ -296,6 +354,8 @@ def main(argv=None) -> int:
     options.add_argument('--language', choices=('en', 'de'),
                         help=_t('Wizard language; skips the language question and saves the selection'))
     options.add_argument('--setup', action='store_true', help=_t('Reconfigure saved paths'))
+    options.add_argument('--preview', action=argparse.BooleanOptionalAction, default=None,
+                         help=_t('360p preview with full duration and FPS; --no-preview renders the full video'))
     options.add_argument('--input', type=Path, help=_t('Supply an image filename or path (also supports drag and drop)'))
     options.add_argument('--dry-run', action='store_true', help=_t('Show and save settings without rendering a video'))
     options.add_argument('--settings', type=Path, default=SETTINGS, help=_t('Local settings file'))
@@ -316,15 +376,29 @@ def main(argv=None) -> int:
             settings = configure_paths(settings)
         save_settings(settings_path, settings)
         validate_paths(settings)
-        image, output, cfg, overwrite = collect_render(settings, args.input)
+        preview = args.preview
+        if preview is None:
+            preview = ask_choice(_t('Render mode'), ('final', 'preview'), 'final') == 'preview'
+        image, output, cfg, overwrite = collect_render(settings, args.input, preview=preview)
+        if preview:
+            from astromotion.preview import preview_config
+            run_cfg = paired_render_config(cfg)
+            render_cfg = preview_config(run_cfg)
+            destination = preview_output_path(output)
+        else:
+            run_cfg = render_cfg = cfg
+            destination = output
         print(_t('\nImage: {image}\nVideo: {output}\n{duration:g} s, {fps} FPS, '
                  '{resolution}, {format}, Loop: {loop}, Profile: {profile}, Music: {music}',
-                 image=image, output=output, duration=cfg.duration, fps=cfg.fps,
-                 resolution=cfg.resolution, format=cfg.format,
+                 image=image, output=destination, duration=render_cfg.duration, fps=render_cfg.fps,
+                 resolution=render_cfg.resolution, format=render_cfg.format,
                  loop=_t('on') if cfg.loop.enabled else _t('off'),
-                 profile=cfg.profile, music=cfg.audio.mode))
+                 profile=render_cfg.profile, music=render_cfg.audio.mode))
+        if preview:
+            print(_t('Preview: {width} x {height}; full video: {resolution}. Duration and FPS are unchanged.',
+                     width=render_cfg.size[0], height=render_cfg.size[1], resolution=cfg.resolution))
         if cfg.audio.mode == 'ambient':
-            print(_t('Music style: {style}', style=cfg.audio.style))
+            print(_t('Music style: {style}', style=render_cfg.audio.style))
         if cfg.caption.enabled:
             print(_t('Text: {caption}', caption=cfg.caption.title + (f' / {cfg.caption.subtitle}' if cfg.caption.subtitle else '')))
         if not args.dry_run and not ask_yes(_t('Start rendering'), True):
@@ -333,13 +407,30 @@ def main(argv=None) -> int:
         settings['defaults'] = remembered_defaults(cfg)
         save_settings(settings_path, settings)
         if args.dry_run:
-            print(json.dumps(asdict(cfg), indent=2, ensure_ascii=False))
+            print(json.dumps(asdict(render_cfg), indent=2, ensure_ascii=False))
             print(_t('Defaults saved. No video rendered.'))
             return 0
         with tempfile.TemporaryDirectory(prefix='astromotion-wizard-') as folder:
             config_path = Path(folder) / 'render.json'
-            config_path.write_text(json.dumps(asdict(cfg), ensure_ascii=False), encoding='utf-8')
-            return subprocess.run(render_command(image, output, config_path, overwrite), cwd=ROOT, check=False).returncode
+            config_path.write_text(json.dumps(asdict(render_cfg), ensure_ascii=False), encoding='utf-8')
+            result = subprocess.run(render_command(image, destination, config_path, overwrite), cwd=ROOT, check=False).returncode
+            if result:
+                return result
+            remember_recent_settings(settings, image, cfg)
+            save_settings(settings_path, settings)
+            if preview:
+                print(_t('Preview ready: {path}', path=destination))
+                if not ask_yes(_t('Render the full-resolution video now with the same motion and music')):
+                    return 0
+                if output.exists() and not output.is_file():
+                    raise ValueError(_t('The output path is a folder. Please choose a filename.'))
+                overwrite_final = output.exists() and ask_yes(_t('Video already exists. Replace it'))
+                if output.exists() and not overwrite_final:
+                    print(_t('Rendering cancelled.'))
+                    return 0
+                config_path.write_text(json.dumps(asdict(run_cfg), ensure_ascii=False), encoding='utf-8')
+                return subprocess.run(render_command(image, output, config_path, overwrite_final), cwd=ROOT, check=False).returncode
+            return 0
     except (KeyboardInterrupt, EOFError):
         print(_t('\nCancelled.'))
         return 130

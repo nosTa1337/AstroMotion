@@ -11,6 +11,7 @@ from typing import Any
 import yaml
 
 MUSIC_STYLES = ("random", "warm", "deep", "shimmer", "pulse", "classic")
+RESOLUTIONS = ("360p", "720p", "1080p", "4k")
 
 
 @dataclass
@@ -158,7 +159,7 @@ class Config:
 
     @property
     def size(self) -> tuple[int, int]:
-        short = {"720p": 720, "1080p": 1080, "4k": 2160}[self.resolution]
+        short = {"360p": 360, "720p": 720, "1080p": 1080, "4k": 2160}[self.resolution]
         long = short * 16 // 9
         return {"vertical": (short, long), "square": (short, short),
                 "landscape": (long, short)}[self.format]
@@ -180,8 +181,8 @@ class Config:
             raise ValueError("profile_variation muss true/false sein.")
         if self.preset not in PRESETS or self.format not in ("vertical", "square", "landscape"):
             raise ValueError("Unbekanntes Preset oder Videoformat.")
-        if self.resolution not in ("720p", "1080p", "4k") or self.fps not in (24, 30, 60):
-            raise ValueError("Auflösung: 720p/1080p/4k; FPS: 24/30/60.")
+        if self.resolution not in RESOLUTIONS or self.fps not in (24, 30, 60):
+            raise ValueError("Auflösung: 360p/720p/1080p/4k; FPS: 24/30/60.")
         for key, value in _flatten(asdict(self)).items():
             if isinstance(value, float) and not math.isfinite(value):
                 raise ValueError(f"{key}: Zahlen müssen endlich sein.")

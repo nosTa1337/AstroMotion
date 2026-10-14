@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 import wizard
-from astromotion.config import load_config
+from astromotion.config import apply_profile, load_config
 
 
 def answers(monkeypatch, values):
@@ -46,7 +46,7 @@ def test_first_setup_and_next_image_reuse_defaults_without_reusing_caption(monke
     image, output, settings_path, paths = environment
     # First run: initialize paths, change video settings, supply a caption.
     prompts = answers(monkeypatch, ['', paths['starnet'], paths['input_dir'], paths['output_dir'],
-                          paths['ffmpeg'], paths['ffprobe'], image.name, 'custom',
+                          paths['ffmpeg'], paths['ffprobe'], 'final', image.name, 'custom',
                           '45', '60', '720p', 'square', '', 'Plejaden', 'MESSIER 45',
                           '', 'random', 'zufall', 'n', '', 'j'])
     recorded = []
@@ -78,7 +78,7 @@ def test_first_setup_and_next_image_reuse_defaults_without_reusing_caption(monke
     assert stored['defaults']['caption']['enabled'] is False
     assert stored['defaults']['audio']['seed'] is None
     # No setup questions on subsequent runs; Enter keeps previous video settings.
-    answers(monkeypatch, ['', image.name, 'custom', '', '', '', '', '', '', 'ambient', 'random', 'zufall', 'n', '', 'j'])
+    answers(monkeypatch, ['', 'final', image.name, '0', 'custom', '', '', '', '', '', '', 'ambient', 'random', 'zufall', 'n', '', 'j'])
     assert wizard.main(['--settings', str(settings_path)]) == 0
     assert len(recorded) == 2
     assert (recorded[1]['duration'], recorded[1]['fps'], recorded[1]['resolution'], recorded[1]['format']) == (45, 60, '720p', 'square')
@@ -116,7 +116,7 @@ def test_dry_run_does_not_launch_a_process_and_accepts_safe_custom_audio(monkeyp
     wizard.save_settings(settings_path, {'version': 1, 'paths': paths, 'defaults': {}})
     answers(monkeypatch, ['custom', '', '', '', '', '', 'Stars " & | test', '', 'file', f'"{music}"', 'n', 'video & test.mp4'])
     monkeypatch.setattr(wizard.subprocess, 'run', lambda *a, **kw: pytest.fail('Dry run launched a process'))
-    assert wizard.main(['--language', 'en', '--settings', str(settings_path), '--input', image.name, '--dry-run']) == 0
+    assert wizard.main(['--language', 'en', '--no-preview', '--settings', str(settings_path), '--input', image.name, '--dry-run']) == 0
     command = wizard.render_command(image, image.parent / 'video & test.mp4', Path('config.json'), False)
     assert command[command.index('--output') + 1].endswith('video & test.mp4')
     assert '--overwrite' not in command
@@ -135,8 +135,8 @@ def test_unreadable_settings_fail_with_setup_hint_and_can_be_reset(monkeypatch, 
     assert wizard.main(['--settings', str(settings_path)]) == 1
     assert '--setup' in capsys.readouterr().err
     answers(monkeypatch, [paths['starnet'], paths['input_dir'], paths['output_dir'], paths['ffmpeg'], paths['ffprobe']])
-    monkeypatch.setattr(wizard, 'collect_render', lambda *a: (_ for _ in ()).throw(EOFError()))
-    assert wizard.main(['--language', 'en', '--settings', str(settings_path), '--setup']) == 130
+    monkeypatch.setattr(wizard, 'collect_render', lambda *a, **kw: (_ for _ in ()).throw(EOFError()))
+    assert wizard.main(['--language', 'en', '--no-preview', '--settings', str(settings_path), '--setup']) == 130
     assert wizard.load_settings(settings_path)['paths'] == paths
 
 
@@ -145,7 +145,8 @@ def test_cancelled_render_is_not_started(monkeypatch, environment):
     wizard.save_settings(settings_path, {'version': 1, 'paths': paths, 'defaults': {}})
     answers(monkeypatch, [image.name, 'custom', '', '', '', '', '', '', 'none', 'n', '', 'n'])
     monkeypatch.setattr(wizard.subprocess, 'run', lambda *a, **kw: pytest.fail('Cancelled render launched a process'))
-    assert wizard.main(['--language', 'en', '--settings', str(settings_path)]) == 0
+    assert wizard.main(['--language', 'en', '--no-preview', '--settings', str(settings_path)]) == 0
+    assert not wizard.load_settings(settings_path).get('history')
 
 
 def test_missing_starnet_is_detected_before_render_questions(environment):
@@ -202,7 +203,7 @@ def test_complete_localized_session_keeps_render_settings_and_protects_existing_
         return SimpleNamespace(returncode=0)
 
     monkeypatch.setattr(wizard.subprocess, 'run', fake_render)
-    assert wizard.main(['--language', language, '--settings', str(settings_path), '--input', image.name]) == 0
+    assert wizard.main(['--language', language, '--no-preview', '--settings', str(settings_path), '--input', image.name]) == 0
     assert all('Language / Sprache' not in prompt for prompt in prompts)
     assert any(title_prompt in prompt for prompt in prompts)
     assert any(f'({yes} / n)' in prompt for prompt in prompts)
@@ -230,7 +231,7 @@ def test_saved_language_is_offered_and_can_be_changed_without_reconfiguring_path
     previous_defaults = None
     for choice, expected, previous in [('de', 'de', 'en'), ('', 'de', 'de'), ('en', 'en', 'de')]:
         prompts = answers(monkeypatch, [choice, '', '', '', '', '', '', '', 'none', 'n', ''])
-        assert wizard.main(['--settings', str(settings_path), '--input', image.name, '--dry-run']) == 0
+        assert wizard.main(['--no-preview', '--settings', str(settings_path), '--input', image.name, '--dry-run']) == 0
         assert f'[{previous}]' in prompts[0]
         assert any(('Sternflug-Profil' if expected == 'de' else 'Star-flight profile') in prompt for prompt in prompts)
         stored = wizard.load_settings(settings_path)
@@ -273,3 +274,164 @@ def test_random_seed_words_work_in_either_language(monkeypatch, language, word):
     monkeypatch.setattr(wizard, 'LANGUAGE', language)
     answers(monkeypatch, [word])
     assert wizard.ask_seed('Seed', 123) is None
+
+
+@pytest.mark.parametrize('language,yes,random_word', [('en', 'y', 'random'), ('de', 'j', 'zufall')])
+def test_preview_then_full_video_share_timing_random_choices_and_explicit_overwrite(
+        monkeypatch, environment, capsys, language, yes, random_word):
+    image, output, settings_path, paths = environment
+    output.mkdir()
+    target = output / 'Pleiades M45_astromotion.mp4'
+    target.write_bytes(b'original movie')
+    original = apply_profile(load_config(wizard.PRESET), 'explore')
+    original.loop.star_cycles = 2
+    wizard.save_settings(settings_path, {'version': 1, 'paths': paths,
+                                        'defaults': wizard.remembered_defaults(original)})
+    prompts = answers(monkeypatch, [
+        '', '', '', '', '', '', 'Pleiades', 'MESSIER 45',
+        '', '', random_word, 'n', '', yes, yes, yes,
+    ])
+    calls = []
+
+    def fake_render(command, **kwargs):
+        cfg = load_config(Path(command[command.index('--config') + 1]))
+        destination = Path(command[command.index('--output') + 1])
+        if not calls:
+            assert target.read_bytes() == b'original movie'
+            assert destination == wizard.preview_output_path(target)
+            assert '--overwrite' not in command
+        else:
+            assert target.read_bytes() == b'original movie'
+            assert destination == target and '--overwrite' in command
+        calls.append((destination, cfg))
+        destination.write_bytes(b'preview' if len(calls) == 1 else b'full movie')
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(wizard.subprocess, 'run', fake_render)
+    assert wizard.main(['--language', language, '--preview', '--settings', str(settings_path), '--input', image.name]) == 0
+    assert len(calls) == 2
+    preview, full = calls[0][1], calls[1][1]
+    assert preview.size == (360, 640) and full.size == (1080, 1920)
+    assert preview.frame_count == full.frame_count == 900
+    assert preview.actual_duration == full.actual_duration == 30
+    assert preview.loop.star_cycles == full.loop.star_cycles == 2
+    assert asdict(preview) == {**asdict(full), 'resolution': '360p'}
+    assert isinstance(full.profile_seed, int) and isinstance(full.audio.seed, int)
+    assert full.audio.style in ('warm', 'deep', 'shimmer', 'pulse')
+    assert full.work_long_edge == original.work_long_edge
+    assert full.separation.executable == paths['starnet']
+    stored = wizard.load_settings(settings_path)
+    assert stored['defaults']['resolution'] == stored['history'][0]['defaults']['resolution'] == '1080p'
+    assert stored['defaults']['profile_seed'] is None and stored['defaults']['audio']['seed'] is None
+    assert stored['defaults']['audio']['style'] == 'random'
+    assert len(stored['history']) == 1 and stored['history'][0]['defaults']['caption']['title'] == ''
+    assert sum('Replace it' in prompt or 'Ersetzen' in prompt for prompt in prompts) == 1
+    assert ('Preview ready:' if language == 'en' else 'Vorschau fertig:') in capsys.readouterr().out
+
+
+def test_interactive_preview_can_stop_without_touching_full_video(monkeypatch, environment):
+    image, output, settings_path, paths = environment
+    output.mkdir()
+    target = output / 'Pleiades M45_astromotion.mp4'
+    target.write_bytes(b'original movie')
+    wizard.save_settings(settings_path, {'version': 1, 'paths': paths, 'defaults': {}})
+    answers(monkeypatch, ['preview', 'custom', '', '', '', '', '', '', 'none', 'n', '', 'y', 'n'])
+    calls = []
+
+    def fake_render(command, **kwargs):
+        calls.append(command)
+        Path(command[command.index('--output') + 1]).write_bytes(b'preview')
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(wizard.subprocess, 'run', fake_render)
+    assert wizard.main(['--language', 'en', '--settings', str(settings_path), '--input', image.name]) == 0
+    assert len(calls) == 1
+    assert Path(calls[0][calls[0].index('--output') + 1]) == wizard.preview_output_path(target)
+    assert target.read_bytes() == b'original movie'
+    assert len(wizard.load_settings(settings_path)['history']) == 1
+
+
+def test_existing_preview_requires_confirmation_independently_of_full_video(monkeypatch, environment):
+    image, output, _, paths = environment
+    output.mkdir()
+    target = output / 'Pleiades M45_astromotion.mp4'
+    target.write_bytes(b'original full movie')
+    preview = wizard.preview_output_path(target)
+    preview.write_bytes(b'original preview')
+    prompts = answers(monkeypatch, ['custom', '', '', '', '', '', '', 'none', 'n', '', 'n', 'different.mp4'])
+    _, chosen, cfg, overwrite = wizard.collect_render({'paths': paths}, image, preview=True)
+    assert chosen == output / 'different.mp4' and not overwrite
+    assert cfg.resolution == '1080p'
+    assert sum('Replace it' in prompt for prompt in prompts) == 1
+    assert target.read_bytes() == b'original full movie' and preview.read_bytes() == b'original preview'
+
+
+@pytest.mark.parametrize('dry_run', [False, True])
+def test_failed_preview_and_dry_run_do_not_add_history(monkeypatch, environment, dry_run):
+    image, _, settings_path, paths = environment
+    wizard.save_settings(settings_path, {'version': 1, 'paths': paths, 'defaults': {}})
+    values = ['custom', '', '', '', '', '', '', 'none', 'n', '']
+    if not dry_run:
+        values.append('y')
+    prompts = answers(monkeypatch, values)
+    calls = []
+    monkeypatch.setattr(wizard.subprocess, 'run', lambda *a, **kw: calls.append(a) or SimpleNamespace(returncode=7))
+    args = ['--language', 'en', '--preview', '--settings', str(settings_path), '--input', image.name]
+    assert wizard.main(args + (['--dry-run'] if dry_run else [])) == (0 if dry_run else 7)
+    stored = wizard.load_settings(settings_path)
+    assert not stored.get('history') and stored['defaults']['resolution'] == '1080p'
+    assert len(calls) == (0 if dry_run else 1)
+    assert not any('full-resolution video now' in prompt for prompt in prompts)
+
+
+def test_history_keeps_five_distinct_setups_and_moves_reused_one_to_top(environment):
+    image, _, settings_path, paths = environment
+    settings = {'version': 1, 'paths': paths, 'defaults': {}}
+    cfg = load_config(wizard.PRESET)
+    for duration in range(30, 37):
+        cfg.duration = float(duration)
+        wizard.remember_recent_settings(settings, image, cfg)
+    assert [entry['defaults']['duration'] for entry in settings['history']] == [36, 35, 34, 33, 32]
+    cfg.motion.zoom = .4
+    assert settings['history'][0]['defaults']['motion']['zoom'] != .4
+    reused = load_config(wizard.PRESET, settings['history'][3]['defaults'])
+    wizard.remember_recent_settings(settings, image.with_name('new photo.jpg'), reused)
+    assert [entry['defaults']['duration'] for entry in settings['history']] == [33, 36, 35, 34, 32]
+    assert settings['history'][0]['image'] == 'new photo.jpg'
+    wizard.save_settings(settings_path, settings)
+    assert wizard.load_settings(settings_path) == settings
+
+
+@pytest.mark.parametrize('language', ['en', 'de'])
+def test_recent_template_can_be_edited_without_changing_snapshot_or_current_paths(monkeypatch, environment, language):
+    image, _, _, paths = environment
+    monkeypatch.setattr(wizard, 'LANGUAGE', language)
+    cfg = apply_profile(load_config(wizard.PRESET), 'explore')
+    cfg.duration, cfg.fps, cfg.resolution, cfg.format = 45.0, 60, '4k', 'landscape'
+    cfg.starfield.count, cfg.starfield.color_strength = 1234, .4
+    cfg.loop.star_cycles = 3
+    cfg.audio.style, cfg.audio.seed = 'pulse', 44
+    cfg.separation.executable = '/old/computer/starnet2'
+    cfg.encoding.ffmpeg = '/old/computer/ffmpeg'
+    settings = {'paths': paths, 'defaults': {}}
+    wizard.remember_recent_settings(settings, image, cfg)
+    before = json.dumps(settings['history'])
+    answers(monkeypatch, ['1', '', '40', '', '', '', '', 'New object', '', '', '', '', 'n', ''])
+    _, _, selected, _ = wizard.collect_render(settings, image)
+    assert selected.profile == 'explore' and selected.duration == 40 and selected.fps == 60
+    assert selected.resolution == '4k' and selected.format == 'landscape'
+    assert selected.starfield.count == 1234 and selected.starfield.color_strength == .4
+    assert selected.loop.star_cycles == 3
+    assert selected.audio.style == 'pulse' and selected.audio.seed == 44
+    assert selected.separation.executable == paths['starnet'] and selected.encoding.ffmpeg == paths['ffmpeg']
+    assert selected.caption.title == 'New object'
+    assert json.dumps(settings['history']) == before and settings['defaults'] == {}
+
+
+def test_reconfiguring_paths_preserves_recent_templates(monkeypatch, environment):
+    image, _, _, paths = environment
+    settings = {'paths': paths, 'defaults': {}}
+    wizard.remember_recent_settings(settings, image, load_config(wizard.PRESET))
+    answers(monkeypatch, ['', '', '', '', ''])
+    configured = wizard.configure_paths(settings)
+    assert configured['history'] == settings['history'] and configured['paths'] == paths
