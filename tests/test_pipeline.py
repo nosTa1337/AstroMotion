@@ -75,7 +75,7 @@ def test_mismatched_and_missing_stars_fail(pair):
 @pytest.mark.parametrize("center", [(.5, .5), (.1, .9)])
 def test_no_black_corners_under_extreme_motion(format, center):
     cfg = Config(format=format, resolution="720p")
-    m = Motion(zoom=.5, star_zoom_extra=.5, rotation_deg=-10, star_rotation_deg=-5,
+    m = Motion(zoom=1.0, star_zoom_extra=.5, rotation_deg=-360, star_rotation_deg=-5,
                pan_x=.15, pan_y=-.15, parallax=3, speed=3, overscan=1,
                center_x=center[0], center_y=center[1])
     # A white source makes any out-of-source sampling immediately detectable.

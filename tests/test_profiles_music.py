@@ -82,14 +82,16 @@ def test_profile_variation_is_bounded_reproducible_and_keeps_the_input(monkeypat
     assert resolve_profile_variation(replace(cfg, profile_seed=None)).profile_seed == 789
 
 
-def test_profile_variation_retains_larger_rotation_and_steady_timing():
+@pytest.mark.parametrize('zoom,rotation', [(.75, 300), (1.0, 360)])
+def test_profile_variation_retains_larger_rotation_and_steady_timing(zoom, rotation):
     cfg = load_config(overrides={'profile': 'explore', 'profile_seed': 123,
-                                'motion': {'timing': 'steady', 'rotation_deg': 55},
-                                'starfield': {'rotation_deg': -60}})
+                                'motion': {'timing': 'steady', 'zoom': zoom, 'rotation_deg': rotation},
+                                'starfield': {'rotation_deg': -rotation}})
     varied = resolve_profile_variation(cfg)
     assert varied.motion.timing == 'steady'
-    assert 49.5 <= abs(varied.motion.rotation_deg) <= 60
-    assert 54 <= abs(varied.starfield.rotation_deg) <= 60
+    assert .94 * zoom <= varied.motion.zoom <= min(1.0, 1.06 * zoom)
+    assert .9 * rotation <= abs(varied.motion.rotation_deg) <= min(360, 1.1 * rotation)
+    assert .9 * rotation <= abs(varied.starfield.rotation_deg) <= min(360, 1.1 * rotation)
     varied.validate()
 
 

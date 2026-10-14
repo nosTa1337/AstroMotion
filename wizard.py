@@ -225,7 +225,7 @@ def preview_output_path(output: Path) -> Path:
 
 def collect_render(settings: dict, supplied_input: Path | None = None, *, preview: bool = False,
                    previous_cfg=None, previous_output: Path | None = None):
-    from astromotion.config import CAMERA_TIMINGS, MAX_ROTATION_DEG, MUSIC_STYLES, PROFILES, RESOLUTIONS, apply_profile, load_config
+    from astromotion.config import CAMERA_TIMINGS, MAX_BACKGROUND_ZOOM, MAX_ROTATION_DEG, MUSIC_STYLES, PROFILES, RESOLUTIONS, apply_profile, load_config
 
     paths = settings['paths']
     input_dir = Path(paths['input_dir'])
@@ -271,7 +271,7 @@ def collect_render(settings: dict, supplied_input: Path | None = None, *, previe
             if cfg.profile_variation:
                 cfg.profile_seed = ask_seed(_t('Profile seed'), cfg.profile_seed)
         cfg.motion.timing = ask_choice(_t('Camera timing (steady = even travel, smooth = slow start/stop)'), CAMERA_TIMINGS, cfg.motion.timing)
-        cfg.motion.zoom = ask_number(_t('Background zoom (0.14 = 14%)'), cfg.motion.zoom, 0, .5)
+        cfg.motion.zoom = ask_number(_t('Background zoom (0.14 = 14%)'), cfg.motion.zoom, 0, MAX_BACKGROUND_ZOOM)
         cfg.motion.rotation_deg = ask_number(_t('Background rotation in degrees'), cfg.motion.rotation_deg, -MAX_ROTATION_DEG, MAX_ROTATION_DEG)
         cfg.starfield.drift_x = ask_number(_t('Lateral star motion X'), cfg.starfield.drift_x, -.5, .5)
         cfg.starfield.drift_y = ask_number(_t('Lateral star motion Y'), cfg.starfield.drift_y, -.5, .5)

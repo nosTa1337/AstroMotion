@@ -91,17 +91,22 @@ def test_steady_camera_has_even_travel_and_closed_smooth_reversals():
 
 
 @pytest.mark.parametrize('timing', ['smooth', 'steady'])
-@pytest.mark.parametrize('rotation', [-60, 60])
-def test_large_rotation_crops_safely_and_camera_loop_closes(timing, rotation):
+@pytest.mark.parametrize('rotation', [-360, 360])
+@pytest.mark.parametrize('zoom', [0, 1.0])
+def test_large_rotation_crops_safely_and_camera_loop_closes(timing, rotation, zoom):
     white = np.ones((331, 477, 3), np.float32)
     camera = Animator(Layers(white, white, 'screen', {}), (180, 320),
-                      Motion(timing=timing, rotation_deg=rotation, star_rotation_deg=5,
+                      Motion(timing=timing, zoom=zoom, rotation_deg=rotation, star_rotation_deg=5,
                              parallax=3, speed=3, center_x=.1, center_y=.9,
                              pan_x=.15, pan_y=-.15, overscan=1))
     for phase in np.linspace(0, 1, 21):
         for foreground in (False, True):
             assert camera.warp(white, camera.matrix(camera_phase(float(phase), timing), foreground)).min() > .9999
     np.testing.assert_allclose(camera.matrix(camera_phase(0, timing)), camera.matrix(camera_phase(1, timing)), atol=1e-12)
+    # Safety comes from the base crop, even with no animated zoom.
+    unrotated = Animator(Layers(white, white, 'screen', {}), (180, 320),
+                         replace(camera.motion, rotation_deg=0, star_rotation_deg=0))
+    assert camera.base_scale > unrotated.base_scale
 
 
 def test_steady_nonloop_camera_and_star_depth_move_without_easing(capsys):
@@ -123,10 +128,11 @@ def test_steady_nonloop_camera_and_star_depth_move_without_easing(capsys):
 
 
 def test_timing_and_rotation_validation():
-    load_config(overrides={'motion': {'timing': 'steady', 'rotation_deg': 60},
-                           'starfield': {'rotation_deg': -60}})
-    for values in ({'motion': {'timing': 'unknown'}}, {'motion': {'rotation_deg': 60.1}},
-                   {'starfield': {'rotation_deg': -60.1}}):
+    load_config(overrides={'motion': {'timing': 'steady', 'zoom': 1.0, 'rotation_deg': 360},
+                           'starfield': {'rotation_deg': -360}})
+    for values in ({'motion': {'timing': 'unknown'}}, {'motion': {'rotation_deg': 360.1}},
+                   {'starfield': {'rotation_deg': -360.1}}, {'motion': {'zoom': 1.01}},
+                   {'motion': {'zoom': -.01}}, {'motion': {'star_zoom_extra': .51}}):
         with pytest.raises(ValueError):
             load_config(overrides=values)
 

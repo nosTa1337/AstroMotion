@@ -4,7 +4,7 @@ import secrets
 
 import numpy as np
 
-from .config import Config, MAX_ROTATION_DEG
+from .config import Config, MAX_BACKGROUND_ZOOM, MAX_ROTATION_DEG
 
 
 def resolve_profile_variation(cfg: Config) -> Config:
@@ -15,7 +15,7 @@ def resolve_profile_variation(cfg: Config) -> Config:
     rng = np.random.default_rng(seed)
     direction = int(rng.choice([-1, 1]))
     motion = replace(cfg.motion,
-        zoom=min(.5, cfg.motion.zoom * rng.uniform(.94, 1.06)),
+        zoom=min(MAX_BACKGROUND_ZOOM, cfg.motion.zoom * rng.uniform(.94, 1.06)),
         rotation_deg=float(np.clip(cfg.motion.rotation_deg * direction * rng.uniform(.9, 1.1), -MAX_ROTATION_DEG, MAX_ROTATION_DEG)))
     stars = replace(cfg.starfield,
         count=int(np.clip(round(cfg.starfield.count * rng.uniform(.9, 1.1)), 1, 20000)),

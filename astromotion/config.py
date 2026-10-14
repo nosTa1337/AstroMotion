@@ -13,7 +13,8 @@ import yaml
 MUSIC_STYLES = ("random", "warm", "deep", "shimmer", "pulse", "classic")
 RESOLUTIONS = ("360p", "720p", "1080p", "4k")
 CAMERA_TIMINGS = ("smooth", "steady")
-MAX_ROTATION_DEG = 60.0
+MAX_ROTATION_DEG = 360.0
+MAX_BACKGROUND_ZOOM = 1.0
 
 
 @dataclass
@@ -195,12 +196,12 @@ class Config:
         if not 512 <= self.work_long_edge <= 16384 or self.max_input_pixels <= 0:
             raise ValueError("work_long_edge: 512..16384; max_input_pixels > 0.")
         m = self.motion
-        if not (0 <= m.zoom <= .5 and 0 <= m.star_zoom_extra <= .5 and 0 <= m.parallax <= 3):
-            raise ValueError("Zoom/Star-Zoom: 0..0.5; Parallax: 0..3.")
+        if not (0 <= m.zoom <= MAX_BACKGROUND_ZOOM and 0 <= m.star_zoom_extra <= .5 and 0 <= m.parallax <= 3):
+            raise ValueError("Hintergrundzoom: 0..1; zusätzlicher Sternzoom: 0..0.5; Parallax: 0..3.")
         if m.timing not in CAMERA_TIMINGS:
             raise ValueError("Motion timing: smooth/steady.")
         if not (0 <= m.speed <= 3 and abs(m.rotation_deg) <= MAX_ROTATION_DEG and abs(m.star_rotation_deg) <= 5):
-            raise ValueError("Speed: 0..3; Rotation max. 60°, zusätzliche Sternrotation max. 5°.")
+            raise ValueError("Speed: 0..3; Rotation max. 360°, zusätzliche Sternrotation max. 5°.")
         if max(abs(m.pan_x), abs(m.pan_y)) > .15 or not 1 <= m.overscan <= 1.5:
             raise ValueError("Pan max. ±0.15; Overscan: 1..1.5.")
         if not (.1 <= m.center_x <= .9 and .1 <= m.center_y <= .9):
@@ -247,7 +248,7 @@ class Config:
         if not (.05 <= f.near < f.far <= 20 and 0 <= f.travel <= 20):
             raise ValueError("Starfield: 0.05 <= near < far <= 20; travel: 0..20.")
         if max(abs(f.drift_x), abs(f.drift_y)) > .5 or abs(f.rotation_deg) > MAX_ROTATION_DEG:
-            raise ValueError("Starfield drift max. ±0.5; Rotation max. 60°.")
+            raise ValueError("Starfield drift max. ±0.5; Rotation max. 360°.")
         if not (0 <= f.farfield_gain <= 1 and 0 <= f.foreground_gain <= 3 and 1 <= f.max_radius <= 30 and 0 <= f.shutter <= 2):
             raise ValueError("Ungültige Starfield-Helligkeit, Radius oder Shutter.")
         if not 0 <= f.color_strength <= 1:
