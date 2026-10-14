@@ -1,6 +1,20 @@
 """English and German text for the guided launcher; no render dependencies."""
 
 GERMAN = {
+    'Invalid saved profiles': 'Ungültige gespeicherte Profile',
+    'Motion: zoom {zoom}; background rotation {rotation}°; star rotation {star_rotation}°; timing {timing}': 'Bewegung: Zoom {zoom}; Hintergrunddrehung {rotation}°; Sterndrehung {star_rotation}°; Verlauf {timing}',
+    'Recent setup to save (0 = back)': 'Letzten Entwurf speichern (0 = zurück)',
+    'Profile name': 'Profilname',
+    'Use 1–60 characters for the profile name and no control characters.': 'Profilname mit 1–60 Zeichen und ohne Steuerzeichen eingeben.',
+    'Music in saved profile (random = new arrangement, exact = same seeds)': 'Musik im Profil (random = neue Zufallsmusik, exact = gleiche Seeds)',
+    'This older setup has no recorded random seeds. Choose random music or create a new preview for an exact copy.': 'Für diesen älteren Entwurf wurden die Zufalls-Seeds nicht gespeichert. Zufallsmusik wählen oder für eine exakte Kopie eine neue Vorschau erstellen.',
+    'Profile already exists. Replace it': 'Profil existiert bereits. Ersetzen',
+    'Profile saved: {name}': 'Profil gespeichert: {name}',
+    'Saved profile: {name}; music: {music}': 'Gespeichertes Profil: {name}; Musik: {music}',
+    'save': 'speichern',
+    'save: Save a recent setup as a named profile': 'speichern: Letzten Entwurf als benanntes Profil speichern',
+    'exact': 'exakt',
+    'unchanged': 'unverändert',
     'Invalid recent settings': 'Ungültige zuletzt verwendete Einstellungen',
     '\nRecent settings (newest first). Choose a template, then edit any value.': '\nLetzte Einstellungen (neueste zuerst). Vorlage wählen, danach Werte anpassen.',
     '0: Current defaults': '0: Aktuelle Vorgaben',

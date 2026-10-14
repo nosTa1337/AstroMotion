@@ -154,6 +154,15 @@ def load_settings(path: Path) -> dict:
             raise ValueError(_t('Invalid recent settings'))
         if 'history' in data:
             data['history'] = history[:HISTORY_LIMIT]
+        if any('exact_defaults' in entry and not isinstance(entry['exact_defaults'], dict) for entry in history):
+            raise ValueError(_t('Invalid recent settings'))
+        favorites = data.get('favorites', {})
+        if not isinstance(favorites, dict) or any(
+                not valid_profile_name(name) or not isinstance(entry, dict)
+                or not isinstance(entry.get('defaults'), dict)
+                or entry.get('music') not in ('random', 'exact', 'unchanged')
+                for name, entry in favorites.items()):
+            raise ValueError(_t('Invalid saved profiles'))
         return data
     except (ValueError, OSError) as exc:
         raise ValueError(_t('Cannot read settings: {error}. Run --setup to configure them again.', error=exc)) from exc
@@ -185,7 +194,7 @@ def configure_paths(old: dict) -> dict:
     return {'version': 1, 'paths': {'starnet': str(starnet), 'input_dir': str(input_dir),
                                   'output_dir': str(output_dir), 'ffmpeg': ffmpeg, 'ffprobe': ffprobe},
             'defaults': old.get('defaults', {}), 'language': LANGUAGE,
-            'history': old.get('history', [])}
+            'history': old.get('history', []), 'favorites': old.get('favorites', {})}
 
 
 def validate_paths(settings: dict) -> None:
@@ -200,23 +209,93 @@ def validate_paths(settings: dict) -> None:
     Path(paths['output_dir']).mkdir(parents=True, exist_ok=True)
 
 
-def choose_settings_template(settings: dict) -> dict:
+def valid_profile_name(name) -> bool:
+    return isinstance(name, str) and 1 <= len(name.strip()) <= 60 and all(ord(c) >= 32 for c in name)
+
+
+def motion_summary(defaults: dict) -> str:
+    motion, stars = defaults.get('motion', {}), defaults.get('starfield', {})
+    return _t('Motion: zoom {zoom}; background rotation {rotation}°; star rotation {star_rotation}°; timing {timing}',
+              zoom=motion.get('zoom', '—'), rotation=motion.get('rotation_deg', '—'),
+              star_rotation=stars.get('rotation_deg', '—'), timing=motion.get('timing', 'smooth'))
+
+
+def save_recent_profile(settings: dict, history: list, settings_path: Path | None) -> None:
+    from astromotion.config import load_config
+
+    selected = ask_choice(_t('Recent setup to save (0 = back)'), tuple(range(len(history) + 1)), 1)
+    if selected == 0:
+        return
+    entry = history[selected - 1]
+    while True:
+        name = ask_text(_t('Profile name'))
+        if valid_profile_name(name):
+            break
+        print(_t('Use 1–60 characters for the profile name and no control characters.'))
+    cfg = load_config(overrides=entry['defaults'])
+    music = 'unchanged'
+    if cfg.audio.mode == 'ambient':
+        while True:
+            music = ask_choice(_t('Music in saved profile (random = new arrangement, exact = same seeds)'),
+                               ('random', 'exact'), 'random')
+            if music == 'random':
+                cfg.audio.seed = None
+                break
+            if 'exact_defaults' in entry:
+                cfg = load_config(overrides=entry['exact_defaults'])
+                break
+            if (cfg.audio.seed is not None and
+                    (cfg.profile == 'custom' or not cfg.profile_variation or cfg.profile_seed is not None)):
+                cfg = paired_render_config(cfg)
+                break
+            print(_t('This older setup has no recorded random seeds. Choose random music or create a new preview for an exact copy.'))
+    favorites = settings.setdefault('favorites', {})
+    existing = next((key for key in favorites if key.casefold() == name.casefold()), None)
+    if existing is not None:
+        if not ask_yes(_t('Profile already exists. Replace it')):
+            return
+        name = existing
+    favorites[name] = {'defaults': remembered_defaults(cfg), 'music': music}
+    if settings_path is not None:
+        save_settings(settings_path, settings)
+    print(_t('Profile saved: {name}', name=name))
+
+
+def choose_settings_template(settings: dict, settings_path: Path | None = None) -> dict:
     history = settings.get('history', [])[:HISTORY_LIMIT]
-    if not history:
-        return settings.get('defaults', {})
-    print(_t('\nRecent settings (newest first). Choose a template, then edit any value.'))
-    print(_t('0: Current defaults'))
-    for number, entry in enumerate(history, 1):
-        cfg = entry['defaults']
-        print(f"{number}: {entry['saved_at']} | {entry['image']} | "
-              f"{cfg.get('profile', 'custom')} | {cfg.get('duration', 30):g} s | "
-              f"{cfg.get('fps', 30)} FPS | {cfg.get('resolution', '1080p')} | "
-              f"{cfg.get('format', 'vertical')} | "
-              + _t('Star passes: {passes}; music: {style}',
-                   passes=cfg.get('loop', {}).get('star_cycles', 1),
-                   style=cfg.get('audio', {}).get('style', 'random')))
-    number = ask_choice(_t('Settings template'), tuple(range(len(history) + 1)), 0)
-    return settings.get('defaults', {}) if number == 0 else history[number - 1]['defaults']
+    while True:
+        favorites = list(settings.get('favorites', {}).items())
+        if not history and not favorites:
+            return settings.get('defaults', {})
+        print(_t('\nRecent settings (newest first). Choose a template, then edit any value.'))
+        print(_t('0: Current defaults'))
+        for number, entry in enumerate(history, 1):
+            cfg = entry['defaults']
+            print(f"{number}: {entry['saved_at']} | {entry['image']} | "
+                  f"{cfg.get('profile', 'custom')} | {cfg.get('duration', 30):g} s | "
+                  f"{cfg.get('fps', 30)} FPS | {cfg.get('resolution', '1080p')} | "
+                  f"{cfg.get('format', 'vertical')} | "
+                  + _t('Star passes: {passes}; music: {style}',
+                       passes=cfg.get('loop', {}).get('star_cycles', 1),
+                       style=cfg.get('audio', {}).get('style', 'random')))
+            print('   ' + motion_summary(cfg))
+        for number, (name, entry) in enumerate(favorites, len(history) + 1):
+            print(f'{number}: ' + _t('Saved profile: {name}; music: {music}', name=name, music=_t(entry['music'])))
+            print('   ' + motion_summary(entry['defaults']))
+        choices = tuple(range(len(history) + len(favorites) + 1))
+        save_word = _t('save')
+        if history:
+            print(_t('save: Save a recent setup as a named profile'))
+            choices += (save_word,)
+        number = ask_choice(_t('Settings template'), choices, 0)
+        if number == save_word:
+            save_recent_profile(settings, history, settings_path)
+        elif number == 0:
+            return settings.get('defaults', {})
+        elif number <= len(history):
+            return history[number - 1]['defaults']
+        else:
+            return favorites[number - len(history) - 1][1]['defaults']
 
 
 def preview_output_path(output: Path) -> Path:
@@ -224,7 +303,7 @@ def preview_output_path(output: Path) -> Path:
 
 
 def collect_render(settings: dict, supplied_input: Path | None = None, *, preview: bool = False,
-                   previous_cfg=None, previous_output: Path | None = None):
+                   previous_cfg=None, previous_output: Path | None = None, settings_path: Path | None = None):
     from astromotion.config import CAMERA_TIMINGS, MAX_BACKGROUND_ZOOM, MAX_ROTATION_DEG, MUSIC_STYLES, PROFILES, RESOLUTIONS, apply_profile, load_config
 
     paths = settings['paths']
@@ -237,7 +316,7 @@ def collect_render(settings: dict, supplied_input: Path | None = None, *, previe
     else:
         image = ask_file(_t('Image filename or full image path'), base=input_dir, suffixes=IMAGE_SUFFIXES)
     cfg = (load_config(overrides=asdict(previous_cfg)) if previous_cfg is not None
-           else load_config(PRESET, choose_settings_template(settings)))
+           else load_config(PRESET, choose_settings_template(settings, settings_path)))
     cfg.separation.executable = paths['starnet']
     cfg.encoding.ffmpeg, cfg.encoding.ffprobe = paths['ffmpeg'], paths['ffprobe']
     if previous_cfg is None:
@@ -318,10 +397,12 @@ def remembered_defaults(cfg) -> dict:
     return data
 
 
-def remember_recent_settings(settings: dict, image: Path, cfg) -> None:
+def remember_recent_settings(settings: dict, image: Path, cfg, exact_cfg=None) -> None:
     defaults = remembered_defaults(cfg)
     entry = {'image': image.name, 'saved_at': datetime.now().astimezone().isoformat(timespec='minutes'),
              'defaults': defaults}
+    if exact_cfg is not None:
+        entry['exact_defaults'] = remembered_defaults(exact_cfg)
     # Reusing the same setup moves it to the top rather than filling all five slots.
     previous = [item for item in settings.get('history', []) if item['defaults'] != defaults]
     settings['history'] = [entry, *previous][:HISTORY_LIMIT]
@@ -393,14 +474,15 @@ def main(argv=None) -> int:
         supplied_input = args.input
         while True:
             image, output, cfg, overwrite = collect_render(settings, supplied_input, preview=preview,
-                                                          previous_cfg=previous_cfg, previous_output=previous_output)
+                                                          previous_cfg=previous_cfg, previous_output=previous_output,
+                                                          settings_path=settings_path)
+            run_cfg = paired_render_config(cfg)
             if preview:
                 from astromotion.preview import preview_config
-                run_cfg = paired_render_config(cfg)
                 render_cfg = preview_config(run_cfg)
                 destination = preview_output_path(output)
             else:
-                run_cfg = render_cfg = cfg
+                render_cfg = run_cfg
                 destination = output
             print(_t('\nImage: {image}\nVideo: {output}\n{duration:g} s, {fps} FPS, '
                      '{resolution}, {format}, Loop: {loop}, Profile: {profile}, Music: {music}',
@@ -408,6 +490,7 @@ def main(argv=None) -> int:
                      resolution=render_cfg.resolution, format=render_cfg.format,
                      loop=_t('on') if cfg.loop.enabled else _t('off'),
                      profile=render_cfg.profile, music=render_cfg.audio.mode))
+            print(motion_summary(asdict(cfg)))
             if preview:
                 print(_t('Preview: {width} x {height}; full video: {resolution}. Duration and FPS are unchanged.',
                          width=render_cfg.size[0], height=render_cfg.size[1], resolution=cfg.resolution))
@@ -415,11 +498,15 @@ def main(argv=None) -> int:
                 print(_t('Music style: {style}', style=render_cfg.audio.style))
             if cfg.caption.enabled:
                 print(_t('Text: {caption}', caption=cfg.caption.title + (f' / {cfg.caption.subtitle}' if cfg.caption.subtitle else '')))
+            # Completed, validated setups are drafts even if rendering is
+            # declined, interrupted or fails. Keep the actual resolved seeds
+            # separately so a named profile can reproduce this arrangement.
+            settings['defaults'] = remembered_defaults(cfg)
+            remember_recent_settings(settings, image, cfg, run_cfg)
+            save_settings(settings_path, settings)
             if not args.dry_run and not ask_yes(_t('Start rendering'), True):
                 print(_t('Rendering cancelled.'))
                 return 0
-            settings['defaults'] = remembered_defaults(cfg)
-            save_settings(settings_path, settings)
             if args.dry_run:
                 print(json.dumps(asdict(render_cfg), indent=2, ensure_ascii=False))
                 print(_t('Defaults saved. No video rendered.'))
@@ -434,8 +521,6 @@ def main(argv=None) -> int:
                                                       reuse_cache), cwd=ROOT, check=False).returncode
                 if result:
                     return result
-                remember_recent_settings(settings, image, cfg)
-                save_settings(settings_path, settings)
                 if preview:
                     # Keep the original cache even when adjusted previews use a
                     # new filename: a reused export need not write another cache.
