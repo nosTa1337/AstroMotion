@@ -175,10 +175,10 @@ Edit the values in `my_config.yaml`, then launch with **`--config my_config.yaml
 | Setting | Recommended setup | Behavior |
 |---|---|---|
 | `motion.timing` | `smooth` | `steady` gives even camera travel; `smooth` keeps the gradual start/stop |
-| `motion.zoom` | `0.14` | Background zoom up to 14%; lower = calmer, `0` = no zoom |
-| `motion.rotation_deg` | `2.0` | Background rotation range in degrees at speed `1`; `-60..60`, `0` = no rotation |
+| `motion.zoom` | `0.14` | Animated background zoom: `0..1`; at speed `1`, `0.14` = +14%, `1.0` = +100% (2×), `0` = no zoom |
+| `motion.rotation_deg` | `2.0` | Background rotation range in degrees at speed `1`; `-360..360`, `0` = no rotation |
 | `starfield.drift_x` / `drift_y` | `0.12` / `-0.035` | Lateral star movement; smaller magnitudes = less drift |
-| `starfield.rotation_deg` | `4.75` | Star-flight rotation range in degrees; `-60..60`, `0` = no rotation |
+| `starfield.rotation_deg` | `4.75` | Star-flight rotation range in degrees; `-360..360`, `0` = no rotation |
 | `starfield.count` | `4500` | Maximum number of animated stars actually detected in the photo |
 | `starfield.color_strength` | `0.6` | Flying-star color strength: `0` = neutral, `1` = full color |
 | `starfield.foreground_gain` | `1.15` | Brightness of the flying stars |
@@ -192,6 +192,8 @@ Flying-star colors come from the StarNet2 residual. Highly colored residuals can
 Star depths are assigned artistically, not measured astronomical distances. In a seamless loop, stars fly forward while the background moves gently in and out. Music is crossfaded at the seam. You can also set `star_cycles: 1` in the `loop` section: `2` gives two complete star traversals per video, increasing the pace. Keep it at `1` for a calm flight. `starfield.travel` affects star movement only when looping is disabled.
 
 For short clips, choose **Camera timing: `steady`** in the wizard's optional menu. It removes the long camera acceleration/deceleration: a loop travels at constant speed for 90% of its duration, with short rounded reversals (0.25 seconds on each side of a turning point in a 10-second clip). The background still approaches and returns to close the loop. For continuous forward zoom, turn Perfect Loop off and keep `steady`; the video then has different start/end frames. Individual looping stars retain their forward depth motion. Larger rotation values crop more of the photo to keep the image borders covered; negative values reverse the direction. Start with a 10–20° rotation range and reduce `motion.zoom` if a 10-second clip still feels too fast.
+
+Rotation coverage is automatic: the renderer chooses a safe base crop for the entire motion path, including the first frame, even when `motion.zoom` is `0`. You do not need to raise animated zoom to hide rotation corners. A larger crop shows less of the original photo; animated zoom then adds its configured magnification on top. Rotation values describe the angle range, not an endless spin: Perfect Loop returns to its starting orientation.
 
 CLI options override the configuration file. Relative file paths inside a configuration are resolved from that file's folder. `--print-config` shows the effective settings without rendering.
 

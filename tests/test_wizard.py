@@ -190,7 +190,7 @@ def test_complete_localized_session_keeps_render_settings_and_protects_existing_
         'drift', '', '', '', '', '', 'Pleiades', 'MESSIER 45',
         'ambient', 'pulse', '42', yes,
         yes, random_word,  # Profile variation and seed.
-        'steady', '', '40', '', '', '55', '1234', '', '', '', '', '', '', '', '',
+        'steady', '1.0', '360', '', '', '-360', '1234', '', '', '', '', '', '', '', '',
         'existing.mp4', 'n', 'new.mp4', yes,
     ])
     recorded = []
@@ -213,8 +213,8 @@ def test_complete_localized_session_keeps_render_settings_and_protects_existing_
     assert cfg['duration'] == 30 and cfg['fps'] == 30 and cfg['resolution'] == '1080p'
     assert cfg['profile'] == 'drift' and cfg['profile_variation'] and cfg['profile_seed'] is None
     assert cfg['starfield']['count'] == 1234 and cfg['starfield']['photo_profiles']
-    assert cfg['motion']['timing'] == 'steady' and cfg['motion']['rotation_deg'] == 40
-    assert cfg['starfield']['rotation_deg'] == 55
+    assert cfg['motion']['timing'] == 'steady' and cfg['motion']['rotation_deg'] == 360
+    assert cfg['motion']['zoom'] == 1.0 and cfg['starfield']['rotation_deg'] == -360
     assert cfg['separation']['executable'] == paths['starnet'] and not cfg['separation']['foreground_cleanup']
     assert cfg['loop']['enabled'] and cfg['loop']['star_cycles'] == 1
     assert cfg['audio']['style'] == 'pulse' and cfg['audio']['seed'] == 42
