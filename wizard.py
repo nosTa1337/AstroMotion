@@ -280,6 +280,9 @@ def collect_render(settings: dict, supplied_input: Path | None = None, *, previe
         else:
             cfg.starfield.travel = ask_number(_t('Travel distance'), cfg.starfield.travel, 0, 20)
         cfg.audio.gain = ask_number(_t('Music volume'), cfg.audio.gain, 0, 2)
+        if cfg.audio.mode == 'ambient' and cfg.audio.style != 'classic':
+            cfg.audio.development = ask_number(_t('Music development (0 = steady, 1 = more variation)'),
+                                               cfg.audio.development, 0, 1)
         if cfg.caption.enabled:
             cfg.caption.title_size = ask_number(_t('Title size'), cfg.caption.title_size, 12, 100, integer=True)
             cfg.caption.subtitle_size = ask_number(_t('Subtitle size'), cfg.caption.subtitle_size, 10, 80, integer=True)

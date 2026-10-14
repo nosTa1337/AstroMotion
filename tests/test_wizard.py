@@ -190,7 +190,7 @@ def test_complete_localized_session_keeps_render_settings_and_protects_existing_
         'drift', '', '', '', '', '', 'Pleiades', 'MESSIER 45',
         'ambient', 'pulse', '42', yes,
         yes, random_word,  # Profile variation and seed.
-        '', '', '', '', '', '1234', '', '', '', '', '', '', '',
+        '', '', '', '', '', '1234', '', '', '', '', '', '', '', '',
         'existing.mp4', 'n', 'new.mp4', yes,
     ])
     recorded = []

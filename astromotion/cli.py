@@ -37,6 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fps", type=int, choices=(24, 30, 60))
     parser.add_argument("--music", choices=("none", "ambient"))
     parser.add_argument("--music-style", choices=MUSIC_STYLES, help="Ambient-Klangstil; random waehlt pro Rendering neu")
+    parser.add_argument("--music-development", type=float, help="Musikalische Entwicklung: 0 ruhig/gleichmaessig, 1 mehr Variation")
     parser.add_argument("--audio", type=Path, help="Eigene MP3-/WAV-Datei (hat Vorrang vor --music)")
     parser.add_argument("--seed", type=int, help="Musik reproduzieren; ohne festen Seed zufällige Variante")
     parser.add_argument("--auto-focus", action=argparse.BooleanOptionalAction, default=None,
@@ -79,7 +80,7 @@ def main(argv: list[str] | None = None) -> int:
         "motion": {"parallax": args.parallax, "speed": args.speed},
         "audio": {"mode": "file" if args.audio else args.music,
                   "file": str(args.audio.resolve()) if args.audio else None, "seed": args.seed,
-                  "style": args.music_style},
+                  "style": args.music_style, "development": args.music_development},
     }.items():
         clean = {k: v for k, v in values.items() if v is not None}
         if clean:

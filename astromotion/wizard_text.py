@@ -56,6 +56,7 @@ GERMAN = {
     'Star passes per loop (1 = calm)': 'Sterndurchlaeufe pro Loop (1 = ruhig)',
     'Travel distance': 'Flugstrecke',
     'Music volume': 'Musiklautstaerke',
+    'Music development (0 = steady, 1 = more variation)': 'Musikalische Entwicklung (0 = gleichmäßig, 1 = mehr Variation)',
     'Title size': 'Titelgroesse',
     'Subtitle size': 'Untertitelgroesse',
     'Text opacity': 'Textdeckkraft',
