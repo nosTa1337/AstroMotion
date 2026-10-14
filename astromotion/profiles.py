@@ -4,7 +4,7 @@ import secrets
 
 import numpy as np
 
-from .config import Config
+from .config import Config, MAX_ROTATION_DEG
 
 
 def resolve_profile_variation(cfg: Config) -> Config:
@@ -16,12 +16,12 @@ def resolve_profile_variation(cfg: Config) -> Config:
     direction = int(rng.choice([-1, 1]))
     motion = replace(cfg.motion,
         zoom=min(.5, cfg.motion.zoom * rng.uniform(.94, 1.06)),
-        rotation_deg=float(np.clip(cfg.motion.rotation_deg * direction * rng.uniform(.9, 1.1), -10, 10)))
+        rotation_deg=float(np.clip(cfg.motion.rotation_deg * direction * rng.uniform(.9, 1.1), -MAX_ROTATION_DEG, MAX_ROTATION_DEG)))
     stars = replace(cfg.starfield,
         count=int(np.clip(round(cfg.starfield.count * rng.uniform(.9, 1.1)), 1, 20000)),
         drift_x=float(np.clip(cfg.starfield.drift_x * direction * rng.uniform(.9, 1.1), -.5, .5)),
         drift_y=float(np.clip(cfg.starfield.drift_y * int(rng.choice([-1, 1])) * rng.uniform(.9, 1.1), -.5, .5)),
-        rotation_deg=float(np.clip(cfg.starfield.rotation_deg * direction * rng.uniform(.9, 1.1), -15, 15)))
+        rotation_deg=float(np.clip(cfg.starfield.rotation_deg * direction * rng.uniform(.9, 1.1), -MAX_ROTATION_DEG, MAX_ROTATION_DEG)))
     # The effective report config can be reused without varying it a second time.
     result = replace(cfg, profile_seed=seed, profile_variation=False, motion=motion, starfield=stars)
     result.validate()

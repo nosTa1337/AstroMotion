@@ -190,7 +190,7 @@ def test_complete_localized_session_keeps_render_settings_and_protects_existing_
         'drift', '', '', '', '', '', 'Pleiades', 'MESSIER 45',
         'ambient', 'pulse', '42', yes,
         yes, random_word,  # Profile variation and seed.
-        '', '', '', '', '', '1234', '', '', '', '', '', '', '', '',
+        'steady', '', '40', '', '', '55', '1234', '', '', '', '', '', '', '', '',
         'existing.mp4', 'n', 'new.mp4', yes,
     ])
     recorded = []
@@ -213,6 +213,8 @@ def test_complete_localized_session_keeps_render_settings_and_protects_existing_
     assert cfg['duration'] == 30 and cfg['fps'] == 30 and cfg['resolution'] == '1080p'
     assert cfg['profile'] == 'drift' and cfg['profile_variation'] and cfg['profile_seed'] is None
     assert cfg['starfield']['count'] == 1234 and cfg['starfield']['photo_profiles']
+    assert cfg['motion']['timing'] == 'steady' and cfg['motion']['rotation_deg'] == 40
+    assert cfg['starfield']['rotation_deg'] == 55
     assert cfg['separation']['executable'] == paths['starnet'] and not cfg['separation']['foreground_cleanup']
     assert cfg['loop']['enabled'] and cfg['loop']['star_cycles'] == 1
     assert cfg['audio']['style'] == 'pulse' and cfg['audio']['seed'] == 42
@@ -338,7 +340,7 @@ def test_interactive_preview_can_stop_without_touching_full_video(monkeypatch, e
     target = output / 'Pleiades M45_astromotion.mp4'
     target.write_bytes(b'original movie')
     wizard.save_settings(settings_path, {'version': 1, 'paths': paths, 'defaults': {}})
-    answers(monkeypatch, ['preview', 'custom', '', '', '', '', '', '', 'none', 'n', '', 'y', 'n'])
+    answers(monkeypatch, ['preview', 'custom', '', '', '', '', '', '', 'none', 'n', '', 'y', 'n', 'n'])
     calls = []
 
     def fake_render(command, **kwargs):
@@ -352,6 +354,75 @@ def test_interactive_preview_can_stop_without_touching_full_video(monkeypatch, e
     assert Path(calls[0][calls[0].index('--output') + 1]) == wizard.preview_output_path(target)
     assert target.read_bytes() == b'original movie'
     assert len(wizard.load_settings(settings_path)['history']) == 1
+
+
+@pytest.mark.parametrize('language,yes,random_word', [('en', 'y', 'random'), ('de', 'j', 'zufall')])
+def test_adjusted_previews_keep_values_seeds_and_original_cache_then_export(
+        monkeypatch, environment, language, yes, random_word):
+    image, output, settings_path, paths = environment
+    wizard.save_settings(settings_path, {'version': 1, 'paths': paths, 'defaults': {}})
+    prompts = answers(monkeypatch, [
+        'explore', '10', '60', '4k', '', '', 'Horsehead', 'BARNARD 33',
+        'ambient', 'random', random_word, 'n', 'first.mp4', yes, 'n', yes,
+        # Same photo/values are offered directly, without setup or history.
+        '', '', '', '', '', '', '', '', '', '', '', yes,
+        yes, '',  # Keep the resolved profile seed.
+        'steady', '.08', '40', '', '', '55',
+        '', '', '', '',  # Star count, brightness, color and cycles.
+        '', '',  # Music volume and development.
+        '', '', '',  # Caption sizes and opacity.
+        'second.mp4', yes, 'n', yes,
+        # A third preview keeps the edited values and confirms replacing it.
+        '', '', '', '', '', '', '', '', '', '', '', 'n', '', yes, yes, yes,
+    ])
+    calls = []
+    first_cache = output / 'first_preview_assets'
+
+    def fake_render(command, **kwargs):
+        cfg = load_config(Path(command[command.index('--config') + 1]))
+        destination = Path(command[command.index('--output') + 1])
+        assert command[command.index('--input') + 1] == str(image)
+        if calls:
+            assert Path(command[command.index('--starnet-cache') + 1]) == first_cache
+        else:
+            assert '--starnet-cache' not in command
+        assert ('--overwrite' in command) == (len(calls) == 2)
+        destination.write_bytes(b'preview' if cfg.resolution == '360p' else b'full')
+        calls.append((destination, cfg))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(wizard.subprocess, 'run', fake_render)
+    assert wizard.main(['--language', language, '--preview', '--settings', str(settings_path), '--input', image.name]) == 0
+    assert len(calls) == 4
+    first, adjusted, repeated, full = [cfg for _, cfg in calls]
+    assert all(cfg.duration == 10 and cfg.fps == 60 for cfg in (first, adjusted, repeated, full))
+    assert full.resolution == '4k' and full.frame_count == 600
+    assert full.motion.timing == 'steady' and full.motion.zoom == .08 and full.motion.rotation_deg == 40
+    assert full.starfield.rotation_deg == 55
+    assert full.caption.title == 'Horsehead' and full.caption.subtitle == 'BARNARD 33'
+    assert isinstance(first.audio.seed, int) and isinstance(first.profile_seed, int)
+    assert all(asdict(cfg.audio) == asdict(first.audio) and cfg.profile_seed == first.profile_seed
+               for cfg in (adjusted, repeated, full))
+    assert asdict(adjusted) == asdict(repeated) == {**asdict(full), 'resolution': '360p'}
+    assert calls[-1][0] == output / 'second.mp4'
+    assert sum('[Horsehead]' in prompt for prompt in prompts) == 2
+    assert sum('Make adjustments' in prompt or 'Anpassungen vornehmen' in prompt for prompt in prompts) == 2
+    assert not any('Settings template' in prompt or 'Einstellungsvorlage' in prompt for prompt in prompts)
+    stored = wizard.load_settings(settings_path)
+    assert stored['defaults']['resolution'] == '4k' and stored['defaults']['caption']['title'] == ''
+
+
+def test_adjusted_caption_can_be_cleared_without_changing_previous_config(monkeypatch, environment):
+    image, output, _, paths = environment
+    cfg = load_config(wizard.PRESET)
+    cfg.caption.enabled, cfg.caption.title, cfg.caption.subtitle = True, 'Horsehead', 'BARNARD 33'
+    cfg.audio.mode = 'none'
+    original = asdict(cfg)
+    answers(monkeypatch, ['', '', '', '', '', '', '-', '', 'n', ''])
+    _, chosen, adjusted, _ = wizard.collect_render({'paths': paths}, image, preview=True,
+                                                  previous_cfg=cfg, previous_output=output / 'previous.mp4')
+    assert not adjusted.caption.enabled and adjusted.caption.title == adjusted.caption.subtitle == ''
+    assert chosen == output / 'previous.mp4' and asdict(cfg) == original
 
 
 def test_existing_preview_requires_confirmation_independently_of_full_video(monkeypatch, environment):

@@ -82,6 +82,17 @@ def test_profile_variation_is_bounded_reproducible_and_keeps_the_input(monkeypat
     assert resolve_profile_variation(replace(cfg, profile_seed=None)).profile_seed == 789
 
 
+def test_profile_variation_retains_larger_rotation_and_steady_timing():
+    cfg = load_config(overrides={'profile': 'explore', 'profile_seed': 123,
+                                'motion': {'timing': 'steady', 'rotation_deg': 55},
+                                'starfield': {'rotation_deg': -60}})
+    varied = resolve_profile_variation(cfg)
+    assert varied.motion.timing == 'steady'
+    assert 49.5 <= abs(varied.motion.rotation_deg) <= 60
+    assert 54 <= abs(varied.starfield.rotation_deg) <= 60
+    varied.validate()
+
+
 def pcm(path):
     with wave.open(str(path)) as wav:
         assert wav.getnchannels() == 2 and wav.getsampwidth() == 2 and wav.getframerate() == 48000

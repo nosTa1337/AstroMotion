@@ -151,7 +151,7 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
                 # Periodic samples exclude the duplicated endpoint: N-1 -> 0
                 # is exactly one frame interval, with no extra freeze frame.
                 t = i / cfg.frame_count if cfg.loop.enabled else i / max(1, cfg.frame_count - 1)
-                camera_t = camera_phase(t) if cfg.loop.enabled else t
+                camera_t = camera_phase(t, effective_motion.timing) if cfg.loop.enabled else t
                 twinkle_time = 2 * np.pi * t / 1.4 if cfg.loop.enabled else i / cfg.fps
                 nebula, stars = animator.frame_layers(camera_t, twinkle_time, cfg.effects.twinkle)
                 if particles:

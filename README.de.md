@@ -36,6 +36,8 @@ Ein optionales Menü bietet Hintergrundzoom, Drehung, seitliche Sternbewegung, S
 
 Wähle **`preview`** als Ausgabe für eine **360p-Vorschau mit gleicher Dauer, FPS, Loop und Animationseinstellungen** wie das volle Video (vertikal 360 × 640). Der Dateiname bekommt den Zusatz `_preview`. Danach bietet der Wizard das volle Video mit derselben zufälligen Bewegungsvariante und demselben Musikarrangement an. Die gespeicherte Auflösung für das volle Video bleibt erhalten. StarNet2 läuft einmal; der volle Export übernimmt die geprüfte Ausgabe in Arbeitsgröße aus dem `_assets`-Ordner der Vorschau.
 
+Wenn du den vollen Export ablehnst, öffnet **Anpassungen vornehmen?** den Wizard erneut für dasselbe Foto. Alle Vorschau-Werte sind vorbelegt, einschließlich Titel, Untertitel, Dateiname und der aufgelösten Bewegungs-/Musik-Seeds. Werte ändern und erneut eine Vorschau rendern; Enter behält den aktuellen Wert, `-` löscht optionalen Text. Der geprüfte StarNet2-Cache wird auch bei einem neuen Dateinamen verwendet. Nach jeder Vorschau kannst du voll exportieren oder erneut anpassen.
+
 Diesen Ordner behalten, damit die Trennung auch bei einem späteren vollen Export mit demselben Videodateinamen wiederverwendet wird. Der Cache prüft Ausgangsfoto, Arbeitspixel/-größe, StarNet2-Einstellungen, EXE/Modelldateien und die Prüfsumme der Ausgabe. Bei fehlendem, geändertem oder beschädigtem Cache wird mit echtem StarNet2 neu getrennt. Wiederholte Renders können auch ihren eigenen `_assets`-Cache nutzen. `render_report.json` dokumentiert die Wiederverwendung. Bei getrennten CLI-Exports `--starnet-cache "photo_preview_assets"` ergänzen und die StarNet2-EXE weiterhin konfigurieren; `--starless` bleibt für extern getrennte Bilder in Originalgröße.
 
 Die **fünf letzten unterschiedlichen Einstellungen aus erfolgreichen Vorschauen oder Videorenders** werden als Vorlagen gespeichert, neueste zuerst. Nach der Bildauswahl eine Vorlage oder `0` für die aktuellen Vorgaben wählen und anschließend alle Werte wie gewohnt anpassen. Erneutes Verwenden schiebt eine Vorlage nach oben. Titel und Untertitel werden für jedes Foto neu eingegeben; Pfade stammen aus deiner aktuellen Einrichtung. Dry Runs, abgebrochene Starts und fehlgeschlagene Renders erzeugen keinen neuen Verlaufseintrag.
@@ -101,6 +103,8 @@ Die folgenden Optionen an den Startbefehl anhängen:
 | Sternflug-Profil | `--profile relax`, `drift` oder `explore` |
 | Ambient-Stil | `--music-style random`, `warm`, `deep`, `shimmer`, `pulse` oder `classic` |
 | Längeres, langsameres Loop-Video | `--duration 45` |
+| Gleichmäßigerer Hintergrundzoom und Drehverlauf | `--camera-timing steady` |
+| Durchgehend vorwärts laufende Kamera | `--camera-timing steady --no-loop` |
 | Querformat / quadratisch | `--format landscape` / `--format square` |
 | Auflösung | `--resolution 360p`, `720p`, `1080p` oder `4k` |
 | 360p-Vorschau mit voller Dauer und FPS | `--preview` |
@@ -170,10 +174,11 @@ Die Werte in `meine_config.yaml` bearbeiten und im Startbefehl **`--config meine
 
 | Einstellung | Wert im empfohlenen Setup | Wirkung |
 |---|---|---|
+| `motion.timing` | `smooth` | `steady` für gleichmäßige Kamerafahrt; `smooth` behält langsames Anfahren/Abbremsen |
 | `motion.zoom` | `0.14` | Hintergrundzoom um bis zu 14 %; kleiner = ruhiger, `0` = kein Zoom |
-| `motion.rotation_deg` | `2.0` | Drehbereich des Hintergrunds in Grad; `0` = keine Drehung |
+| `motion.rotation_deg` | `2.0` | Drehbereich des Hintergrunds in Grad bei Speed `1`; `-60..60`, `0` = keine Drehung |
 | `starfield.drift_x` / `drift_y` | `0.12` / `-0.035` | Seitliche Bewegung des Sternflugs; kleinere Beträge = weniger Drift |
-| `starfield.rotation_deg` | `4.75` | Drehbereich des Sternflugs in Grad; `0` = keine Drehung |
+| `starfield.rotation_deg` | `4.75` | Drehbereich des Sternflugs in Grad; `-60..60`, `0` = keine Drehung |
 | `starfield.count` | `4500` | Obergrenze der animierten, tatsächlich erkannten Sterne |
 | `starfield.color_strength` | `0.6` | Farbstärke fliegender Sterne: `0` = neutral, `1` = volle Farbe |
 | `starfield.foreground_gain` | `1.15` | Helligkeit der fliegenden Sterne |
@@ -185,6 +190,8 @@ Die Werte in `meine_config.yaml` bearbeiten und im Startbefehl **`--config meine
 Die Farben der fliegenden Sterne stammen aus dem StarNet2-Residuum. Stark gefärbte Reste können beim Vergrößern übertrieben wirken; deshalb beträgt ihre Farbstärke standardmäßig `0.6`. Die Anpassung erhält Helligkeit, Sternprofile und Bewegung und verändert keine Hintergrundfarben. Kleinere Werte ergeben neutralere Sterne; `1` entspricht der bisherigen vollen Farbstärke. Im Wizard liegt die Einstellung im optionalen Menü.
 
 Der Sternflug verwendet künstlerisch zugewiesene Tiefen, keine gemessenen astronomischen Entfernungen. Im Perfect Loop fliegen die Sterne vorwärts, während der Hintergrund sanft vor und zurück fährt. Die Musik wird am Übergang überblendet. Im Abschnitt `loop` lässt sich zusätzlich `star_cycles: 1` setzen: `2` bedeutet zwei vollständige Sterndurchläufe pro Video und damit mehr Tempo. Für einen ruhigen Flug bei `1` bleiben. `starfield.travel` beeinflusst den Flug nur bei ausgeschaltetem Loop.
+
+Für kurze Clips im optionalen Wizard-Menü **Kameraverlauf: `steady`** wählen. Damit entfallen die langen Beschleunigungs- und Bremsphasen: Im Loop läuft die Kamera während 90 % der Zeit gleichmäßig, mit kurzen weichen Richtungswechseln (bei 10 Sekunden jeweils 0,25 Sekunden auf jeder Seite des Umkehrpunkts). Der Hintergrund fährt weiterhin vor und zurück, damit der Loop schließt. Für durchgehend vorwärts laufenden Zoom Perfect Loop ausschalten und `steady` verwenden; Anfang und Ende des Videos unterscheiden sich dann. Die einzelnen Sterne behalten im Loop ihre vorwärts laufende Tiefenbewegung. Größere Drehwerte schneiden mehr vom Foto ab, damit keine freien Bildränder entstehen; negative Werte kehren die Richtung um. Mit 10–20° Drehbereich beginnen und `motion.zoom` reduzieren, falls ein 10-Sekunden-Clip weiterhin zu schnell wirkt.
 
 CLI-Optionen überschreiben die Konfigurationsdatei. Relative Dateipfade innerhalb einer Konfiguration beziehen sich auf deren Ordner. `--print-config` zeigt die effektiven Einstellungen, ohne zu rendern.
 
