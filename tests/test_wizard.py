@@ -147,7 +147,8 @@ def test_cancelled_render_is_not_started(monkeypatch, environment):
     answers(monkeypatch, [image.name, 'custom', '', '', '', '', '', '', 'none', 'n', '', 'n'])
     monkeypatch.setattr(wizard.subprocess, 'run', lambda *a, **kw: pytest.fail('Cancelled render launched a process'))
     assert wizard.main(['--language', 'en', '--no-preview', '--settings', str(settings_path)]) == 0
-    assert not wizard.load_settings(settings_path).get('history')
+    stored = wizard.load_settings(settings_path)
+    assert len(stored['history']) == 1 and stored['history'][0]['defaults'] == stored['defaults']
 
 
 def test_missing_starnet_is_detected_before_render_questions(environment):
@@ -211,7 +212,7 @@ def test_complete_localized_session_keeps_render_settings_and_protects_existing_
     assert any(f'[{random_word}]' in prompt for prompt in prompts)
     cfg = recorded[0]
     assert cfg['duration'] == 30 and cfg['fps'] == 30 and cfg['resolution'] == '1080p'
-    assert cfg['profile'] == 'drift' and cfg['profile_variation'] and cfg['profile_seed'] is None
+    assert cfg['profile'] == 'drift' and cfg['profile_variation'] and isinstance(cfg['profile_seed'], int)
     assert cfg['starfield']['count'] == 1234 and cfg['starfield']['photo_profiles']
     assert cfg['motion']['timing'] == 'steady' and cfg['motion']['rotation_deg'] == 360
     assert cfg['motion']['zoom'] == 1.0 and cfg['starfield']['rotation_deg'] == -360
@@ -233,7 +234,8 @@ def test_saved_language_is_offered_and_can_be_changed_without_reconfiguring_path
     monkeypatch.setattr(wizard.subprocess, 'run', lambda *a, **kw: pytest.fail('Dry run launched a process'))
     previous_defaults = None
     for choice, expected, previous in [('de', 'de', 'en'), ('', 'de', 'de'), ('en', 'en', 'de')]:
-        prompts = answers(monkeypatch, [choice, '', '', '', '', '', '', '', 'none', 'n', ''])
+        prompts = answers(monkeypatch, [choice, *(['0'] if previous_defaults is not None else []),
+                                        '', '', '', '', '', '', '', 'none', 'n', ''])
         assert wizard.main(['--no-preview', '--settings', str(settings_path), '--input', image.name, '--dry-run']) == 0
         assert f'[{previous}]' in prompts[0]
         assert any(('Sternflug-Profil' if expected == 'de' else 'Star-flight profile') in prompt for prompt in prompts)
@@ -441,7 +443,7 @@ def test_existing_preview_requires_confirmation_independently_of_full_video(monk
 
 
 @pytest.mark.parametrize('dry_run', [False, True])
-def test_failed_preview_and_dry_run_do_not_add_history(monkeypatch, environment, dry_run):
+def test_failed_preview_and_dry_run_keep_completed_draft(monkeypatch, environment, dry_run):
     image, _, settings_path, paths = environment
     wizard.save_settings(settings_path, {'version': 1, 'paths': paths, 'defaults': {}})
     values = ['custom', '', '', '', '', '', '', 'none', 'n', '']
@@ -453,7 +455,8 @@ def test_failed_preview_and_dry_run_do_not_add_history(monkeypatch, environment,
     args = ['--language', 'en', '--preview', '--settings', str(settings_path), '--input', image.name]
     assert wizard.main(args + (['--dry-run'] if dry_run else [])) == (0 if dry_run else 7)
     stored = wizard.load_settings(settings_path)
-    assert not stored.get('history') and stored['defaults']['resolution'] == '1080p'
+    assert len(stored['history']) == 1 and stored['defaults']['resolution'] == '1080p'
+    assert stored['history'][0]['defaults'] == stored['defaults']
     assert len(calls) == (0 if dry_run else 1)
     assert not any('full-resolution video now' in prompt for prompt in prompts)
 
@@ -509,3 +512,147 @@ def test_reconfiguring_paths_preserves_recent_templates(monkeypatch, environment
     answers(monkeypatch, ['', '', '', '', ''])
     configured = wizard.configure_paths(settings)
     assert configured['history'] == settings['history'] and configured['paths'] == paths
+
+
+@pytest.mark.parametrize('language,yes', [('en', 'y'), ('de', 'j')])
+def test_custom_draft_survives_declined_render_and_reloads_all_values(monkeypatch, environment, language, yes):
+    image, _, settings_path, paths = environment
+    wizard.save_settings(settings_path, {'version': 1, 'paths': paths, 'defaults': {}})
+    prompts = answers(monkeypatch, [
+        'custom', '10', '60', '4k', 'landscape', '', '',
+        'ambient', 'random', 'random', yes,
+        'steady', '.85', '120', '.22', '-.12', '-75', '1234', '1.2', '.45', '2', '.4', '.9',
+        'draft.mp4', 'n',
+    ])
+    monkeypatch.setattr(wizard.subprocess, 'run', lambda *a, **kw: pytest.fail('Declined draft rendered a video'))
+    assert wizard.main(['--language', language, '--preview', '--settings', str(settings_path), '--input', image.name]) == 0
+    stored = wizard.load_settings(settings_path)
+    draft = stored['history'][0]['defaults']
+    assert draft == stored['defaults'] and draft['resolution'] == '4k'
+    assert draft['motion']['zoom'] == .85 and draft['motion']['rotation_deg'] == 120
+    assert draft['starfield']['rotation_deg'] == -75 and draft['starfield']['count'] == 1234
+    assert draft['audio']['gain'] == .4 and draft['audio']['development'] == .9
+    assert draft['audio']['seed'] is None and isinstance(stored['history'][0]['exact_defaults']['audio']['seed'], int)
+    before = json.dumps(stored['history'])
+    answers(monkeypatch, ['1', *([''] * 10), 'n', 'restored.mp4'])
+    _, _, restored, _ = wizard.collect_render(stored, image)
+    assert wizard.remembered_defaults(restored) == draft
+    assert json.dumps(stored['history']) == before
+
+
+@pytest.mark.parametrize('language', ['en', 'de'])
+@pytest.mark.parametrize('music', ['random', 'exact'])
+def test_named_profile_keeps_custom_values_music_choice_and_survives_history_rollover(
+        monkeypatch, environment, capsys, language, music):
+    from astromotion.profiles import resolve_profile_variation
+
+    image, _, settings_path, paths = environment
+    monkeypatch.setattr(wizard, 'LANGUAGE', language)
+    cfg = apply_profile(load_config(wizard.PRESET), 'explore')
+    cfg.duration, cfg.fps, cfg.resolution = 10.0, 60, '4k'
+    cfg.motion.zoom, cfg.motion.rotation_deg, cfg.motion.timing = .85, 150, 'steady'
+    cfg.starfield.rotation_deg, cfg.starfield.foreground_gain = -75, 1.25
+    cfg.audio.gain, cfg.audio.development = .4, .9
+    cfg.caption.enabled, cfg.caption.title = True, 'Old object'
+    exact = wizard.paired_render_config(cfg)
+    settings = {'version': 1, 'paths': paths, 'defaults': {}}
+    wizard.remember_recent_settings(settings, image, cfg, exact)
+    wizard.save_settings(settings_path, settings)
+    answers(monkeypatch, [wizard._t('save'), '1', 'Slow rotation', music, '2'])
+    selected = wizard.choose_settings_template(settings, settings_path)
+    favorite = load_config(overrides=selected)
+    assert favorite.motion.zoom == .85 and favorite.motion.rotation_deg == 150
+    assert favorite.starfield.rotation_deg == -75 and favorite.audio.development == .9
+    assert not favorite.caption.enabled and favorite.caption.title == ''
+    if music == 'exact':
+        assert selected == wizard.remembered_defaults(exact)
+        assert isinstance(favorite.audio.seed, int) and favorite.audio.style != 'random'
+        assert asdict(resolve_profile_variation(favorite).motion) == asdict(resolve_profile_variation(exact).motion)
+        assert asdict(wizard.paired_render_config(favorite).audio) == asdict(exact.audio)
+    else:
+        assert favorite.audio.seed is None and favorite.audio.style == cfg.audio.style
+        monkeypatch.setattr(wizard.secrets, 'randbits', lambda bits: 1234)
+        assert wizard.paired_render_config(favorite).audio.seed == 1234
+    saved = wizard.load_settings(settings_path)
+    assert saved['favorites']['Slow rotation']['defaults'] == selected
+    assert saved['favorites']['Slow rotation']['music'] == music
+    snapshot = json.dumps(saved['favorites'])
+    for duration in range(20, 27):
+        cfg.duration = float(duration)
+        wizard.remember_recent_settings(saved, image, cfg)
+    assert len(saved['history']) == 5 and json.dumps(saved['favorites']) == snapshot
+    wizard.save_settings(settings_path, saved)
+    reloaded = wizard.load_settings(settings_path)
+    answers(monkeypatch, ['6'])
+    assert wizard.choose_settings_template(reloaded) == selected
+    output = capsys.readouterr().out
+    assert '0.85' in output and '150' in output and 'Slow rotation' in output
+
+
+@pytest.mark.parametrize('approval', ['n', 'y'])
+def test_named_profile_replacement_requires_confirmation(monkeypatch, environment, approval):
+    image, _, settings_path, paths = environment
+    old = load_config(wizard.PRESET)
+    old.audio.mode = 'none'
+    settings = {'version': 1, 'paths': paths, 'defaults': {},
+                'favorites': {'Slow rotation': {'defaults': wizard.remembered_defaults(old), 'music': 'unchanged'}}}
+    new = load_config(wizard.PRESET)
+    new.motion.zoom, new.audio.mode = .9, 'none'
+    wizard.remember_recent_settings(settings, image, new)
+    wizard.save_settings(settings_path, settings)
+    answers(monkeypatch, ['1', 'SLOW ROTATION', approval])
+    wizard.save_recent_profile(settings, settings['history'], settings_path)
+    saved = wizard.load_settings(settings_path)
+    assert list(saved['favorites']) == ['Slow rotation']
+    assert saved['favorites']['Slow rotation']['defaults']['motion']['zoom'] == (.9 if approval == 'y' else old.motion.zoom)
+
+
+def test_named_profile_is_saved_immediately_even_if_template_selection_is_cancelled(monkeypatch, environment):
+    image, _, settings_path, paths = environment
+    cfg = load_config(wizard.PRESET)
+    settings = {'version': 1, 'paths': paths, 'defaults': {}}
+    wizard.remember_recent_settings(settings, image, cfg, wizard.paired_render_config(cfg))
+    values = iter(['save', '1', 'Quiet flight', 'exact'])
+
+    def answer(prompt):
+        try:
+            return next(values)
+        except StopIteration:
+            raise EOFError from None
+
+    monkeypatch.setattr('builtins.input', answer)
+    with pytest.raises(EOFError):
+        wizard.choose_settings_template(settings, settings_path)
+    assert 'Quiet flight' in wizard.load_settings(settings_path)['favorites']
+
+
+def test_legacy_random_setup_does_not_invent_an_exact_music_copy(monkeypatch, environment, capsys):
+    image, _, settings_path, paths = environment
+    cfg = load_config(wizard.PRESET)
+    settings = {'version': 1, 'paths': paths, 'defaults': {}}
+    wizard.remember_recent_settings(settings, image, cfg)
+    answers(monkeypatch, ['1', 'Quiet flight', 'exact', 'random'])
+    wizard.save_recent_profile(settings, settings['history'], settings_path)
+    saved = wizard.load_settings(settings_path)['favorites']['Quiet flight']
+    assert saved['music'] == 'random' and saved['defaults']['audio']['seed'] is None
+    assert 'no recorded random seeds' in capsys.readouterr().out
+
+
+def test_reconfiguring_paths_preserves_named_profiles(monkeypatch, environment):
+    _, _, _, paths = environment
+    settings = {'paths': paths, 'favorites': {'Quiet flight': {
+        'defaults': wizard.remembered_defaults(load_config(wizard.PRESET)), 'music': 'random'}}}
+    before = json.dumps(settings['favorites'])
+    answers(monkeypatch, ['', '', '', '', ''])
+    configured = wizard.configure_paths(settings)
+    assert json.dumps(configured['favorites']) == before
+
+
+@pytest.mark.parametrize('favorite', [[], {'': {'defaults': {}, 'music': 'exact'}},
+                                     {'name': {'defaults': [], 'music': 'random'}},
+                                     {'name': {'defaults': {}, 'music': 'unknown'}}])
+def test_invalid_named_profile_data_reports_settings_error(environment, favorite):
+    _, _, settings_path, paths = environment
+    wizard.save_settings(settings_path, {'version': 1, 'paths': paths, 'defaults': {}, 'favorites': favorite})
+    with pytest.raises(ValueError, match='Cannot read settings'):
+        wizard.load_settings(settings_path)
