@@ -176,7 +176,7 @@ Die Werte in `meine_config.yaml` bearbeiten und im Startbefehl **`--config meine
 |---|---|---|
 | `motion.timing` | `smooth` | `steady` für gleichmäßige Kamerafahrt; `smooth` behält langsames Anfahren/Abbremsen |
 | `motion.zoom` | `0.14` | Animierter Hintergrundzoom: `0..1`; bei Speed `1` bedeutet `0.14` +14 %, `1.0` +100 % (2×), `0` = kein Zoom |
-| `motion.rotation_deg` | `2.0` | Drehbereich des Hintergrunds in Grad bei Speed `1`; `-360..360`, `0` = keine Drehung |
+| `motion.rotation_deg` | `2.0` | Zielwinkel des Hintergrunds ab der Originalausrichtung bei Speed `1`; `-360..360`, `0` = keine Drehung |
 | `starfield.drift_x` / `drift_y` | `0.12` / `-0.035` | Seitliche Bewegung des Sternflugs; kleinere Beträge = weniger Drift |
 | `starfield.rotation_deg` | `4.75` | Drehbereich des Sternflugs in Grad; `-360..360`, `0` = keine Drehung |
 | `starfield.count` | `4500` | Obergrenze der animierten, tatsächlich erkannten Sterne |
@@ -193,7 +193,9 @@ Der Sternflug verwendet künstlerisch zugewiesene Tiefen, keine gemessenen astro
 
 Für kurze Clips im optionalen Wizard-Menü **Kameraverlauf: `steady`** wählen. Damit entfallen die langen Beschleunigungs- und Bremsphasen: Im Loop läuft die Kamera während 90 % der Zeit gleichmäßig, mit kurzen weichen Richtungswechseln (bei 10 Sekunden jeweils 0,25 Sekunden auf jeder Seite des Umkehrpunkts). Der Hintergrund fährt weiterhin vor und zurück, damit der Loop schließt. Für durchgehend vorwärts laufenden Zoom Perfect Loop ausschalten und `steady` verwenden; Anfang und Ende des Videos unterscheiden sich dann. Die einzelnen Sterne behalten im Loop ihre vorwärts laufende Tiefenbewegung. Größere Drehwerte schneiden mehr vom Foto ab, damit keine freien Bildränder entstehen; negative Werte kehren die Richtung um. Mit 10–20° Drehbereich beginnen und `motion.zoom` reduzieren, falls ein 10-Sekunden-Clip weiterhin zu schnell wirkt.
 
-Die Randabdeckung bei Drehung erfolgt automatisch: Der Renderer berechnet einen sicheren Grundbeschnitt für die gesamte Bewegung, einschließlich des ersten Frames, auch bei `motion.zoom: 0`. Du musst den animierten Zoom also nicht erhöhen, um schwarze Drehecken zu vermeiden. Ein stärkerer Beschnitt zeigt weniger vom Originalfoto; der animierte Zoom vergrößert diesen Ausschnitt zusätzlich. Die Drehwerte beschreiben den Winkelbereich, keine endlose Drehung: Perfect Loop kehrt zur Ausgangsausrichtung zurück.
+Die Hintergrunddrehung startet bei **0°: der Originalausrichtung des Fotos**. Bei Speed `1` dreht der Wert `40` von `0°` auf `40°`; im Perfect Loop anschließend wieder auf `0°` zurück. Negative Werte kehren die Richtung um. Der erste Frame ist nicht mehr um den halben eingestellten Winkel vorgedreht.
+
+Die Randabdeckung bei Drehung erfolgt automatisch: Der Renderer berechnet einen sicheren Grundbeschnitt für die gesamte Drehung von `0°` bis zum Zielwinkel, einschließlich des ersten Frames, auch bei `motion.zoom: 0`. Du musst den animierten Zoom also nicht erhöhen, um schwarze Drehecken zu vermeiden. Ein stärkerer Beschnitt zeigt weniger vom Originalfoto; der animierte Zoom vergrößert diesen Ausschnitt zusätzlich. Perfect Loop kehrt zur Originalausrichtung zurück, statt endlos weiterzudrehen.
 
 CLI-Optionen überschreiben die Konfigurationsdatei. Relative Dateipfade innerhalb einer Konfiguration beziehen sich auf deren Ordner. `--print-config` zeigt die effektiven Einstellungen, ohne zu rendern.
 
