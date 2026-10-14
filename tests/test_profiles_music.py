@@ -151,6 +151,53 @@ def test_invalid_profile_and_music_settings_fail_before_rendering():
             load_config(overrides=override)
 
 
+@pytest.mark.parametrize('development', [-.1, 1.1, float('nan')])
+def test_invalid_music_development_preserves_existing_audio(tmp_path, development):
+    path = tmp_path / 'original.wav'
+    path.write_bytes(b'existing audio')
+    with pytest.raises(ValueError):
+        load_config(overrides={'audio': {'development': development}})
+    with pytest.raises(ValueError):
+        synthesize_ambient(path, 2, Audio(style='warm', seed=77, development=development))
+    assert path.read_bytes() == b'existing audio'
+    assert not list(tmp_path.glob('.*.wav'))
+
+
+def test_music_development_cli_and_preview_controls(tmp_path, capsys):
+    assert main(['--music-style', 'deep', '--music-development', '.8', '--print-config']) == 0
+    assert json.loads(capsys.readouterr().out)['audio']['development'] == .8
+    path = tmp_path / 'preview.wav'
+    assert music_preview(['--style', 'warm', '--seed', '77', '--development', '0', '--duration', '2', '--output', str(path)]) == 0
+    steady = path.read_bytes()
+    assert music_preview(['--style', 'warm', '--seed', '77', '--development', '1', '--duration', '2', '--output', str(path), '--overwrite']) == 0
+    assert path.read_bytes() != steady and pcm(path).shape == (96000, 2)
+
+
+@pytest.mark.parametrize('style', ['warm', 'deep'])
+def test_development_increases_musical_change_throughout_thirty_second_loop(tmp_path, style):
+    def movement(data):
+        mono = data.mean(axis=1).reshape(-1, 24000)
+        power = abs(np.fft.rfft(mono * np.hanning(24000), axis=1)) ** 2
+        frequencies = np.fft.rfftfreq(24000, 1 / 48000)
+        edges = [20, 63, 125, 250, 500, 1000, 2000, 4000, 10000]
+        bands = np.array([power[:, (frequencies >= low) & (frequencies < high)].sum(axis=1)
+                          for low, high in zip(edges, edges[1:])]).T
+        bands /= bands.sum(axis=1, keepdims=True)
+        return float(abs(np.diff(bands, axis=0)).sum(axis=1).mean())
+
+    scores = []
+    for development in (0, .65):
+        cfg = Config(duration=30, audio=Audio(mode='ambient', style=style, seed=77, development=development),
+                     loop=Loop(enabled=True))
+        path = tmp_path / f'{development}.wav'
+        prepare_audio_loop(path, cfg)
+        data = pcm(path)
+        assert data.shape == (1440000, 2) and 0 < abs(data).max() < .65
+        assert abs(data[0] - data[-1]).max() <= 1.1 * abs(np.diff(data, axis=0)).max()
+        scores.append(movement(data))
+    assert scores[1] > scores[0] * 1.05
+
+
 def test_music_preview_needs_no_video_and_protects_existing_files(tmp_path, capsys):
     path = tmp_path / 'preview.wav'
     args = ['--style', 'pulse', '--seed', '77', '--duration', '.2', '--output', str(path)]

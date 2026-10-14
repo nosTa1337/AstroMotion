@@ -60,6 +60,7 @@ class Audio:
     file: str | None = None
     seed: int | None = None  # None: fresh music per render; integer: reproducible
     style: str = "random"  # random selects one of four distinct ambient arrangements
+    development: float = 0.65  # 0: steady arrangement; 1: more phrases/texture movement
     gain: float = 0.7
     fade_seconds: float = 2.0
     sample_rate: int = 48000
@@ -219,6 +220,8 @@ class Config:
         a = self.audio
         if a.style not in MUSIC_STYLES:
             raise ValueError("Audio style: random/warm/deep/shimmer/pulse/classic.")
+        if not 0 <= a.development <= 1:
+            raise ValueError("Audio development: 0..1.")
         if a.mode not in ("none", "ambient", "file") or (a.mode == "file" and not a.file):
             raise ValueError("Audio: none/ambient/file; file benötigt audio.file.")
         if not 0 <= a.gain <= 2 or a.fade_seconds < 0 or a.sample_rate not in (44100, 48000):

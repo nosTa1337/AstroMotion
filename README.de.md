@@ -139,18 +139,22 @@ Die Profile variieren Richtung, Drehung, Zoom und Sternanzahl in kleinen Grenzen
 
 | Stil | Klang |
 |---|---|
-| `warm` | Weiche Dur-/Moll-Flächen mit sanftem Bass |
-| `deep` | Tiefe, langsame Drone-Akkorde mit dunklerer Tonlage |
-| `shimmer` | Helle, luftige Flächen und einzelne weiche Glockentöne |
-| `pulse` | Runde Synthesizer-Töne mit einem sanften, wiederkehrenden Arpeggio |
+| `warm` | Weiche Dur-/Moll-Flächen, sanfter Bass und kurze Melodiephrasen |
+| `deep` | Tiefe Drone-Akkorde mit leisen Antworttönen über der dunkleren Tonlage |
+| `shimmer` | Helle, luftige Flächen und wechselnde, weiche Glockenmotive |
+| `pulse` | Runde Synthesizer-Töne mit sanft variiertem Arpeggio und kleinen Pausen |
 
 `random` ist die Vorgabe: Pro Rendering werden Stil, Tonart, Akkordreihenfolge, Timing und Klangdetails neu gewählt. Ein fester Stil behält seinen Charakter; `--seed 1234` wiederholt das Arrangement. `classic` erhält den bisherigen Synth samt `audio.harmony` / `audio.accents`; `audio.transpose` gilt für alle Stile. Die Musik entsteht lokal ohne aufgenommene Samples. Die bestehende Loop-Überblendung bleibt aktiv.
+
+Die vier Stile entwickeln sich auch innerhalb eines Clips: Akkordstimmen und Klangfarbe bewegen sich langsam, warm/deep ergänzen zusammenhängende Melodiephrasen, shimmer/pulse variieren Motive und Betonung. **`--music-development 0.65`** oder `audio.development` steuert die Stärke (`0..1`): `0` erhält das bisherige gleichmäßige Arrangement, `0.65` ist die Vorgabe und `1` bringt stärkere Entwicklung. Der Wizard bietet den Regler im optionalen Menü an. `classic` und eigene Musikdateien behalten ihr bisheriges Verhalten. Zufalls-Seeds und Loop-Überblendung bleiben reproduzierbar.
 
 Vor dem Videorendering probehören (ohne StarNet oder FFmpeg):
 
 ```powershell
 python -m astromotion.music --style shimmer --seed 1234 --duration 12 --output shimmer_preview.wav
 ```
+
+Mit `--development 0.8` beim reinen Musikbefehl lässt sich eine stärkere Variation vor dem Videorendering probehören.
 
 Render-Protokoll und `render_report.json` enthalten den tatsächlichen Profil-Seed und den gewählten Musikstil samt Seed. `--print-config` zeigt die eingestellten Werte vor dem Auflösen der Zufallswerte.
 

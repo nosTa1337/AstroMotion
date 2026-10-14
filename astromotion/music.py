@@ -1,7 +1,7 @@
 """Random or reproducible stereo ambient synthesis without recorded samples."""
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 import secrets
 import uuid
@@ -29,6 +29,73 @@ _STYLE_SOUND = {
     "shimmer": ((8, 12), (.30, .16, .022), 0.0, (.17, .29, .53), (1.8, 3.4)),
     "pulse": ((8, 12), (.32, .10, .026), .018, (.23, .47, .71), (48, 66)),
 }
+
+
+@dataclass(frozen=True)
+class _Note:
+    onset: float
+    frequency: float
+    pan: float
+    gain: float
+    attack: float
+    decay: float
+    tail: float
+    partials: tuple[tuple[float, float], ...]
+
+
+def _styled_notes(chords, progression_time, duration, cfg, spacing, rng, evolution):
+    """Chord-linked phrases with breathing room, and changing arpeggio/bell motifs."""
+    notes = []
+    strength = cfg.development
+    if spacing:
+        onset = .35 if cfg.style == 'pulse' else .65
+        beat = 60 / float(rng.uniform(*spacing)) if cfg.style == 'pulse' else None
+        pattern = rng.permutation([2, 3, 4, 5])
+        motif = pattern.copy()
+        step = 0
+        while onset < duration:
+            if strength and step % 4 == 0:
+                motif = np.roll(pattern, int(evolution.integers(0, 4)))
+                if evolution.random() < .5:
+                    motif = motif[::-1]
+            chord = int(onset / progression_time + (.5 if strength else 0)) % 4
+            if strength:
+                index = int(motif[step % 4])
+            else:
+                index = int(pattern[step % 4]) if beat else int(rng.integers(2, 6))
+            midi = int(chords[chord, index]) + (0 if beat else 12)
+            pan = float(rng.uniform(.25, .75))
+            velocity = 1 + strength * float(evolution.uniform(-.30, .18)) if strength else 1
+            rest = bool(beat and strength and step % 4 == 3 and evolution.random() < .30 * strength)
+            if not rest:
+                notes.append(_Note(onset, 440 * 2 ** ((midi - 69) / 12), pan,
+                    (.060 if beat else .048) * velocity, .045 if beat else .08,
+                    .45 if beat else 1.5, 2 if beat else 5,
+                    ((1, 1), (2, .22), (3, .08)) if beat else ((1, 1), (2.01, .25), (2.8, .08))))
+            onset += beat * float(rng.uniform(.97, 1.03)) if beat else float(rng.uniform(*spacing))
+            step += 1
+    elif strength:
+        # Warm/deep previously had only sustained chords. Soft four-note ideas
+        # now answer each other; each note follows the currently dominant chord.
+        onset = float(evolution.uniform(.7, 1.3))
+        motif = np.array([[2, 4, 3, 2], [3, 4, 5, 3], [4, 3, 2, 3]])[evolution.integers(3)]
+        phrase = 0
+        while onset < duration:
+            indices = motif if phrase % 2 == 0 else np.roll(motif, 1)
+            spacing_seconds = float(evolution.uniform(.7, 1.0) if cfg.style == 'warm' else evolution.uniform(.95, 1.25))
+            for step, index in enumerate(indices):
+                start = onset + step * spacing_seconds
+                if start >= duration:
+                    break
+                chord = int(start / progression_time + .5) % 4
+                midi = int(chords[chord, index]) + (12 if cfg.style == 'deep' else 0)
+                notes.append(_Note(start, 440 * 2 ** ((midi - 69) / 12), float(evolution.uniform(.3, .7)),
+                    (.052 if cfg.style == 'warm' else .035) * strength * float(evolution.uniform(.8, 1.15)),
+                    .22 if cfg.style == 'warm' else .35, 1.0 if cfg.style == 'warm' else 1.4,
+                    4 if cfg.style == 'warm' else 6, ((1, 1), (2, .12), (3, .035))))
+            onset += 4 * spacing_seconds + float(evolution.uniform(1.2, 2.6)) / (.6 + .4 * strength)
+            phrase += 1
+    return sorted(notes, key=lambda note: note.onset)
 
 
 def resolve_audio_seed(cfg: Audio) -> Audio:
@@ -65,6 +132,8 @@ def synthesize_ambient(path: Path, duration: float, cfg: Audio) -> None:
 def _synthesize_ambient_stream(path: Path, duration: float, cfg: Audio) -> None:
     if cfg.harmony not in ("original", "floating", "dusk") or not -12 <= cfg.transpose <= 12:
         raise ValueError("Ungültige Ambient-Harmonie oder Transposition.")
+    if not 0 <= cfg.development <= 1:
+        raise ValueError("Audio development: 0..1.")
     if cfg.style == "classic":
         _synthesize_classic_stream(path, duration, cfg)
     elif cfg.style in _STYLE_CHORDS:
@@ -83,26 +152,23 @@ def _synthesize_styled_stream(path: Path, duration: float, cfg: Audio) -> None:
     key = int(rng.choice([-5, -3, 0, 2, 4, 5])) + cfg.transpose
     chords = np.array(_STYLE_CHORDS[cfg.style])[rng.permutation(4)] + key
     progression_time = float(rng.uniform(*seconds))
+    strength = cfg.development
+    evolution = np.random.default_rng(cfg.seed ^ 0xD3E10)
+    minimum = 6.0 if cfg.style == 'deep' else 4.5
+    target_time = min(progression_time, max(minimum, duration / 4))
+    progression_time += strength * (target_time - progression_time)
     phases = rng.uniform(0, 2 * np.pi, (4, 6, 2))
     detune = rng.uniform(-.0016, .0016, (4, 6, 2))
     pans = rng.uniform(.2, .8, (4, 6))
     second, third, pad_gain = harmonics
     second *= float(rng.uniform(.85, 1.15))
     third *= float(rng.uniform(.85, 1.15))
-    events = []
-    if spacing:
-        onset = .35 if cfg.style == "pulse" else .65
-        beat = 60 / float(rng.uniform(*spacing)) if cfg.style == "pulse" else None
-        pattern = rng.permutation([2, 3, 4, 5])
-        step = 0
-        while onset < duration:
-            chord = int(onset / progression_time) % 4
-            index = int(pattern[step % 4]) if beat else int(rng.integers(2, 6))
-            midi = int(chords[chord, index]) + (0 if beat else 12)
-            events.append((onset, 440 * 2 ** ((midi - 69) / 12), float(rng.uniform(.25, .75))))
-            onset += beat * float(rng.uniform(.97, 1.03)) if beat else float(rng.uniform(*spacing))
-            step += 1
-    onsets = np.array([event[0] for event in events])
+    notes = _styled_notes(chords, progression_time, duration, cfg, spacing, rng, evolution)
+    onsets = np.array([note.onset for note in notes])
+    tail = max((note.tail for note in notes), default=0)
+    textures = evolution.uniform(.35, 1.5, (5, 6))
+    textures /= textures.mean(axis=1, keepdims=True)
+    texture_seconds = float(evolution.uniform(5, 8))
     delays = [round(sr * value) for value in echo_times]
     history = np.zeros((max(delays), 2), np.float64)
     with wave.open(str(path), "wb") as wav:
@@ -115,6 +181,11 @@ def _synthesize_styled_stream(path: Path, duration: float, cfg: Audio) -> None:
             frac = position % 1
             blend = frac * frac * (3 - 2 * frac)
             block = np.zeros((n, 2), np.float64)
+            texture_position = t / texture_seconds
+            texture_index = np.floor(texture_position).astype(int) % len(textures)
+            texture_blend = .5 - .5 * np.cos(np.pi * (texture_position % 1))
+            voicing = ((1 - texture_blend[:, None]) * textures[texture_index]
+                       + texture_blend[:, None] * textures[(texture_index + 1) % len(textures)])
             for c in range(4):
                 envelope = np.where(chord_index == c, 1 - blend, 0) + np.where((chord_index + 1) % 4 == c, blend, 0)
                 if not envelope.any():
@@ -122,33 +193,31 @@ def _synthesize_styled_stream(path: Path, duration: float, cfg: Audio) -> None:
                 for v, midi in enumerate(chords[c]):
                     freq = 440 * 2 ** ((float(midi) - 69) / 12)
                     voice = np.zeros(n)
+                    tone = 1 + .28 * strength * np.sin(2 * np.pi * t / (11 + v) + phases[c, v, 0])
                     for osc in range(2):
                         phase = 2 * np.pi * freq * (1 + detune[c, v, osc]) * t + phases[c, v, osc]
-                        voice += (np.sin(phase) + second * np.sin(2 * phase) + third * np.sin(3 * phase)) / 2
+                        voice += (np.sin(phase) + second * tone * np.sin(2 * phase) + third * np.sin(3 * phase)) / 2
                     swell = .85 + .15 * np.sin(2 * np.pi * .04 * t + phases[c, v, 0])
-                    voice *= envelope * pad_gain * swell
+                    voice *= envelope * pad_gain * swell * (1 + strength * (voicing[:, v] - 1))
                     block[:, 0] += voice * np.sqrt(1 - pans[c, v])
                     block[:, 1] += voice * np.sqrt(pans[c, v])
                 if bass_gain:
                     freq = 440 * 2 ** ((float(chords[c, 0]) - 12 - 69) / 12)
-                    bass = bass_gain * envelope * np.sin(2 * np.pi * freq * t + phases[c, 0, 0])
+                    bass_swell = 1 - .14 * strength + .14 * strength * np.sin(2 * np.pi * t / texture_seconds + phases[c, 0, 0])
+                    bass = bass_gain * envelope * bass_swell * np.sin(2 * np.pi * freq * t + phases[c, 0, 0])
                     block += bass[:, None] / np.sqrt(2)
             # Only inspect notes whose tails overlap this block, even for long clips.
-            tail = 5.0 if cfg.style == "shimmer" else 2.0
             first = int(np.searchsorted(onsets, t[0] - tail))
             last = int(np.searchsorted(onsets, t[-1], side="right"))
-            for onset, freq, pan in events[first:last]:
-                age = np.maximum(t - onset, 0)
-                attack_time = .08 if cfg.style == "shimmer" else .045
-                attack = np.sin(np.clip(age / attack_time, 0, 1) * np.pi / 2) ** 2
-                decay = 1.5 if cfg.style == "shimmer" else .45
-                end = np.clip((tail - age) / .25, 0, 1) ** 2
-                envelope = attack * np.exp(-age / decay) * end * (t >= onset)
-                partials = ((1, 1), (2.01, .25), (2.8, .08)) if cfg.style == "shimmer" else ((1, 1), (2, .22), (3, .08))
-                voice = sum(gain * np.sin(2 * np.pi * freq * ratio * age) for ratio, gain in partials)
-                voice *= (.048 if cfg.style == "shimmer" else .060) * envelope
-                block[:, 0] += voice * np.sqrt(1 - pan)
-                block[:, 1] += voice * np.sqrt(pan)
+            for note in notes[first:last]:
+                age = np.maximum(t - note.onset, 0)
+                attack = np.sin(np.clip(age / note.attack, 0, 1) * np.pi / 2) ** 2
+                end = np.clip((note.tail - age) / .25, 0, 1) ** 2
+                envelope = attack * np.exp(-age / note.decay) * end * (t >= note.onset)
+                voice = sum(gain * np.sin(2 * np.pi * note.frequency * ratio * age) for ratio, gain in note.partials)
+                voice *= note.gain * envelope
+                block[:, 0] += voice * np.sqrt(1 - note.pan)
+                block[:, 1] += voice * np.sqrt(note.pan)
             joined = np.concatenate((history, block))
             wet = block.copy()
             for delay, gain in zip(delays, (.20, .13, .08)):
@@ -269,12 +338,13 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="AstroMotion: kurze Ambient-Hoerprobe ohne Videorendering")
     parser.add_argument("--style", choices=MUSIC_STYLES, default="random")
     parser.add_argument("--seed", type=int)
+    parser.add_argument("--development", type=float, default=.65)
     parser.add_argument("--duration", type=float, default=12.0)
     parser.add_argument("--output", type=Path, default=Path("music_preview.wav"))
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args(argv)
     try:
-        cfg = Audio(mode="ambient", style=args.style, seed=args.seed, fade_seconds=.4)
+        cfg = Audio(mode="ambient", style=args.style, seed=args.seed, development=args.development, fade_seconds=.4)
         Config(audio=cfg).validate()
         if not .1 <= args.duration <= 60:
             raise ValueError("Hoerproben: Dauer 0.1..60 Sekunden.")

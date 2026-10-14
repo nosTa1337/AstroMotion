@@ -139,18 +139,22 @@ Each profile adds a bounded variation of direction, rotation, zoom and star coun
 
 | Style | Sound |
 |---|---|
-| `warm` | Soft major/minor pads and a gentle bass foundation |
-| `deep` | Low, slow drone chords with a darker register |
-| `shimmer` | Airy higher pads and sparse, soft bell notes |
-| `pulse` | Rounded synth tones with a gentle repeating arpeggio |
+| `warm` | Soft major/minor pads, gentle bass and short melodic phrases |
+| `deep` | Low drone chords with quiet answering notes above the darker register |
+| `shimmer` | Airy higher pads and changing soft bell motifs |
+| `pulse` | Rounded synth tones with a gently varying arpeggio and breathing room |
 
 `random` is the default: each render chooses a style as well as a new key, chord order, timing and sound details. Select a style to keep its character; `--seed 1234` reproduces the arrangement. `classic` retains the previous synth and its `audio.harmony` / `audio.accents` controls. `audio.transpose` applies to all styles. Music is generated locally without recorded samples; the existing loop crossfade remains active.
+
+The four styles also develop within a clip: pad voicings and tone colors move slowly, warm/deep add chord-linked phrases, and shimmer/pulse vary their motifs and note emphasis. Control this with **`--music-development 0.65`** or `audio.development` (`0..1`): `0` keeps the previous steady arrangement, `0.65` is the default, and `1` adds stronger development. The wizard's optional menu exposes the same setting. `classic` and external music files keep their existing behavior. Random seeds and seamless loop crossfades remain reproducible.
 
 Listen before rendering a video (no StarNet or FFmpeg needed):
 
 ```powershell
 python -m astromotion.music --style shimmer --seed 1234 --duration 12 --output shimmer_preview.wav
 ```
+
+Add `--development 0.8` to the music-only command to hear a stronger variation before rendering video.
 
 The render log and `render_report.json` record the actual profile variation seed and chosen music style/seed. `--print-config` shows the configured values before random choices are resolved.
 
