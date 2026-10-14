@@ -16,7 +16,10 @@ from .preview import preview_config
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="AstroMotion – lokale 2,5D-Deep-Sky-Videos")
     parser.add_argument("--input", type=Path, help="Fertiges, gestretchtes RGB-Astrofoto")
-    parser.add_argument("--starless", type=Path, help="Passende, bereits mit StarNet2 erzeugte Starless-Datei")
+    separated = parser.add_mutually_exclusive_group()
+    separated.add_argument("--starless", type=Path, help="Passende, bereits mit StarNet2 erzeugte Starless-Datei")
+    separated.add_argument("--starnet-cache", type=Path,
+                           help="StarNet2-Ausgabe aus einem früheren _assets-Ordner geprüft wiederverwenden")
     parser.add_argument("--starnet", help="Pfad zu starnet2.exe oder starnet++.exe")
     parser.add_argument("--starnet-mode", choices=("auto", "modern", "legacy"))
     parser.add_argument("--config", type=Path, help="YAML-/JSON-Datei")
@@ -112,7 +115,8 @@ def main(argv: list[str] | None = None) -> int:
                       end="\n" if done == total else "", file=sys.stderr, flush=True)
                 last[0] = now
 
-        render(args.input, output, cfg, args.starless, progress, args.overwrite)
+        cache_args = {"starnet_cache": args.starnet_cache.resolve()} if args.starnet_cache else {}
+        render(args.input, output, cfg, args.starless, progress, args.overwrite, **cache_args)
         print(f"Video: {output.resolve()}")
         return 0
     except KeyboardInterrupt:

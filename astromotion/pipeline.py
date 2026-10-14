@@ -23,19 +23,23 @@ from .profiles import resolve_profile_variation
 from .looping import camera_phase, prepare_audio_loop
 from .separation import extract_layers, run_starnet
 from .starfield import PerspectiveStars
+from .starnet_cache import MANIFEST, cache_identity, load_cached_starless, save_cache_manifest
 
 LOG = logging.getLogger(__name__)
 Progress = Callable[[int, int, float], None]
 
 
 def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | None = None,
-           progress: Progress | None = None, overwrite: bool = False) -> dict:
+           progress: Progress | None = None, overwrite: bool = False,
+           starnet_cache: Path | None = None) -> dict:
     """Render synchronously; exceptions propagate; callback runs once per frame.
 
     Video is committed atomically only after successful encoding and verification.
     Diagnostic files live beside the output under <stem>_assets/.
     """
     cfg.validate()
+    if starless_path is not None and starnet_cache is not None:
+        raise ValueError("--starless und --starnet-cache können nicht zusammen verwendet werden.")
     profile_variation_requested = cfg.profile != "custom" and cfg.profile_variation
     cfg = resolve_profile_variation(cfg)
     if cfg.audio.mode == "ambient":
@@ -78,6 +82,9 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
             LOG.info("Cinematic intelligence: focus=(%.3f, %.3f) contrast=%.3f saturation=%.3f",
                      effective_motion.center_x, effective_motion.center_y,
                      effective_effects.contrast, effective_effects.saturation)
+        cache_info = None
+        identity = None
+        fresh_starnet = False
         if starless_path:
             raw_starless = load_image(starless_path.resolve(), cfg.max_input_pixels)
             if raw_starless.shape != original_shape:
@@ -85,8 +92,33 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
             starless = resize_work(raw_starless, cfg.work_long_edge)
             del raw_starless
         else:
-            starless = run_starnet(original, cfg.separation, workspace)
+            cache_info = {"reused": False, "source": None}
+            try:
+                identity = cache_identity(input_path, original, cfg.separation, cfg.work_long_edge)
+            except OSError as exc:
+                LOG.warning("StarNet2 cache fingerprint unavailable; running the CLI: %s", exc)
+            starless = None
+            if identity is not None:
+                candidates = [workspace]
+                if starnet_cache is not None:
+                    candidates.insert(0, starnet_cache.expanduser().resolve())
+                for candidate in dict.fromkeys(candidates):
+                    starless = load_cached_starless(candidate, identity)
+                    if starless is not None:
+                        cache_info = {"reused": True, "source": str(candidate)}
+                        LOG.info("Reusing verified StarNet2 separation from %s.", candidate)
+                        break
+            if starless is None:
+                # Failed/new CLI runs must never inherit an older cache manifest.
+                (workspace / MANIFEST).unlink(missing_ok=True)
+                starless = run_starnet(original, cfg.separation, workspace)
+                fresh_starnet = True
         layers = extract_layers(original, starless, cfg.separation)
+        if fresh_starnet and identity is not None:
+            try:
+                save_cache_manifest(workspace, identity)
+            except OSError as exc:
+                LOG.warning("Could not save the StarNet2 cache manifest: %s", exc)
         del original, starless
         if cfg.save_layers:
             save_png(workspace / "nebula.png", to_srgb(layers.nebula))
@@ -138,6 +170,7 @@ def render(input_path: Path, output: Path, cfg: Config, starless_path: Path | No
                   "base_scale": animator.base_scale, "actual_duration": cfg.actual_duration,
                   "elapsed_seconds": time.monotonic() - start, "probe": encoder.info,
                   "cinematic_intelligence": cinematic_metrics,
+                  "starnet_cache": cache_info,
                   "profile": {"name": cfg.profile, "variation": profile_variation_requested,
                               "seed": cfg.profile_seed},
                   "layer_encoding": "sRGB PNG; decode sRGB to linear then use separation.blend"}

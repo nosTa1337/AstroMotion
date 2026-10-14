@@ -331,11 +331,14 @@ def paired_render_config(cfg):
     return replace(cfg, audio=audio, profile_seed=seed)
 
 
-def render_command(image: Path, output: Path, config_path: Path, overwrite: bool) -> list[str]:
+def render_command(image: Path, output: Path, config_path: Path, overwrite: bool,
+                   starnet_cache: Path | None = None) -> list[str]:
     command = [sys.executable, str(ROOT / 'main.py'), '--input', str(image),
                '--config', str(config_path), '--output', str(output)]
     if overwrite:
         command.append('--overwrite')
+    if starnet_cache is not None:
+        command.extend(['--starnet-cache', str(starnet_cache)])
     return command
 
 
@@ -413,7 +416,10 @@ def main(argv=None) -> int:
         with tempfile.TemporaryDirectory(prefix='astromotion-wizard-') as folder:
             config_path = Path(folder) / 'render.json'
             config_path.write_text(json.dumps(asdict(render_cfg), ensure_ascii=False), encoding='utf-8')
-            result = subprocess.run(render_command(image, destination, config_path, overwrite), cwd=ROOT, check=False).returncode
+            preview_output = preview_output_path(output)
+            preview_cache = preview_output.parent / (preview_output.stem + '_assets')
+            result = subprocess.run(render_command(image, destination, config_path, overwrite,
+                                                  None if preview else preview_cache), cwd=ROOT, check=False).returncode
             if result:
                 return result
             remember_recent_settings(settings, image, cfg)
@@ -429,7 +435,8 @@ def main(argv=None) -> int:
                     print(_t('Rendering cancelled.'))
                     return 0
                 config_path.write_text(json.dumps(asdict(run_cfg), ensure_ascii=False), encoding='utf-8')
-                return subprocess.run(render_command(image, output, config_path, overwrite_final), cwd=ROOT, check=False).returncode
+                return subprocess.run(render_command(image, output, config_path, overwrite_final,
+                                                     preview_cache), cwd=ROOT, check=False).returncode
             return 0
     except (KeyboardInterrupt, EOFError):
         print(_t('\nCancelled.'))

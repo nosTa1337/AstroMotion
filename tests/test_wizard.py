@@ -55,6 +55,7 @@ def test_first_setup_and_next_image_reuse_defaults_without_reusing_caption(monke
         assert kwargs['cwd'] == wizard.ROOT and kwargs['check'] is False
         assert command[0] == sys.executable
         assert command[command.index('--input') + 1] == str(image)
+        assert Path(command[command.index('--starnet-cache') + 1]) == output / 'Pleiades M45_astromotion_preview_assets'
         config_path = Path(command[command.index('--config') + 1])
         config = load_config(config_path)
         assert config.starfield.enabled and config.starfield.photo_profiles
@@ -300,9 +301,11 @@ def test_preview_then_full_video_share_timing_random_choices_and_explicit_overwr
             assert target.read_bytes() == b'original movie'
             assert destination == wizard.preview_output_path(target)
             assert '--overwrite' not in command
+            assert '--starnet-cache' not in command
         else:
             assert target.read_bytes() == b'original movie'
             assert destination == target and '--overwrite' in command
+            assert Path(command[command.index('--starnet-cache') + 1]) == output / 'Pleiades M45_astromotion_preview_assets'
         calls.append((destination, cfg))
         destination.write_bytes(b'preview' if len(calls) == 1 else b'full movie')
         return SimpleNamespace(returncode=0)
