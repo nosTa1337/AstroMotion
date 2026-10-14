@@ -34,6 +34,12 @@ Pro Video wählst du Sternflug-Profil, Länge, FPS, Auflösung, Format, Perfect 
 
 Ein optionales Menü bietet Hintergrundzoom, Drehung, seitliche Sternbewegung, Sternanzahl, Helligkeit, Loop-Tempo, Lautstärke und Textgröße. Vor dem Rendern zeigt das Skript die Auswahl und fragt nach dem Start. Vorhandene Videos werden nur nach ausdrücklicher Bestätigung ersetzt.
 
+Wähle **`preview`** als Ausgabe für eine **360p-Vorschau mit gleicher Dauer, FPS, Loop und Animationseinstellungen** wie das volle Video (vertikal 360 × 640). Der Dateiname bekommt den Zusatz `_preview`. Danach bietet der Wizard das volle Video mit derselben zufälligen Bewegungsvariante und demselben Musikarrangement an. Die gespeicherte Auflösung für das volle Video bleibt erhalten. StarNet2 verarbeitet weiterhin dieselbe Eingabe in derselben Arbeitsgröße; die kleinere Ausgabe beschleunigt hauptsächlich das Videorendering.
+
+Die **fünf letzten unterschiedlichen Einstellungen aus erfolgreichen Vorschauen oder Videorenders** werden als Vorlagen gespeichert, neueste zuerst. Nach der Bildauswahl eine Vorlage oder `0` für die aktuellen Vorgaben wählen und anschließend alle Werte wie gewohnt anpassen. Erneutes Verwenden schiebt eine Vorlage nach oben. Titel und Untertitel werden für jedes Foto neu eingegeben; Pfade stammen aus deiner aktuellen Einrichtung. Dry Runs, abgebrochene Starts und fehlgeschlagene Renders erzeugen keinen neuen Verlaufseintrag.
+
+Direkt eine Vorschau starten: `start_wizard.bat --preview` oder `python wizard.py --preview`. `--no-preview` überspringt die Ausgabeauswahl und rendert in der gewählten vollen Auflösung. Auch `main.py --preview` behält jetzt die volle Dauer und FPS bei. Für gleiche Zufallsvarianten bei getrennten CLI-Starts denselben `--profile-seed` und Musik-`--seed` verwenden.
+
 Pfade neu einrichten: `start_wizard.bat --setup`. Einstellungen prüfen, ohne ein Video zu rendern: `start_wizard.bat --dry-run`. Linux/macOS: `python wizard.py` in der aktivierten Projektumgebung.
 
 Die lokalen Einstellungen liegen in `.astromotion-wizard.json` und werden von Git ignoriert. Das Skript nutzt dieselbe StarNet2-Pipeline und denselben Python-Interpreter wie der Startbefehl.
@@ -94,7 +100,8 @@ Die folgenden Optionen an den Startbefehl anhängen:
 | Ambient-Stil | `--music-style random`, `warm`, `deep`, `shimmer`, `pulse` oder `classic` |
 | Längeres, langsameres Loop-Video | `--duration 45` |
 | Querformat / quadratisch | `--format landscape` / `--format square` |
-| Auflösung | `--resolution 720p`, `1080p` oder `4k` |
+| Auflösung | `--resolution 360p`, `720p`, `1080p` oder `4k` |
+| 360p-Vorschau mit voller Dauer und FPS | `--preview` |
 | Bildrate | `--fps 24`, `30` oder `60` |
 | Dezentere Sternfarben | `--star-color-strength 0.6` |
 | Dieselbe Musikvariante wiederholen | `--seed 1234` |

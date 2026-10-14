@@ -34,6 +34,12 @@ For each video, choose a star-flight profile, duration, FPS, resolution, format,
 
 An optional menu controls background zoom, rotation, lateral star motion, star count, brightness, loop pace, volume and text size. Before rendering, the wizard shows your choices and asks whether to start. Replacing an existing video requires explicit confirmation.
 
+Choose **`preview`** as the render mode for a **360p preview with the same duration, FPS, loop and animation settings** as the full video (360 × 640 vertically). The preview adds `_preview` to the selected video filename. Afterwards, the wizard offers to render the full-resolution video with the same random motion variation and music arrangement. Preview mode keeps your saved full-video resolution. StarNet2 still processes the same input at the same working size; the lower output resolution mainly speeds up video rendering.
+
+The wizard remembers the **five most recent distinct setups from successful previews or video renders**, newest first. After choosing a photo, select a recent template or `0` for the current defaults, then adjust any setting in the normal menus. Reusing a setup moves it to the top. Titles and subtitles are entered afresh for each photo; paths come from your current setup. Dry runs, cancelled launches and failed renders do not add a history entry.
+
+Direct preview start: `start_wizard.bat --preview` or `python wizard.py --preview`. Use `--no-preview` to skip the mode question and render at the chosen full-video resolution. The command-line launcher also supports `main.py --preview` with full duration and FPS; separate CLI runs need the same `--profile-seed` and music `--seed` if you want to repeat their random choices.
+
 Update saved paths: `start_wizard.bat --setup`. Check settings without rendering: `start_wizard.bat --dry-run`. On Linux/macOS, run `python wizard.py` with the project environment activated.
 
 Local settings are stored in `.astromotion-wizard.json`, which Git ignores. The wizard uses the same StarNet2 pipeline and Python interpreter as the command-line launcher.
@@ -94,7 +100,8 @@ Append these options to your launch command:
 | Ambient style | `--music-style random`, `warm`, `deep`, `shimmer`, `pulse` or `classic` |
 | Longer, slower loop video | `--duration 45` |
 | Landscape / square format | `--format landscape` / `--format square` |
-| Resolution | `--resolution 720p`, `1080p` or `4k` |
+| Resolution | `--resolution 360p`, `720p`, `1080p` or `4k` |
+| 360p preview with full duration and FPS | `--preview` |
 | Frame rate | `--fps 24`, `30` or `60` |
 | Softer star colors | `--star-color-strength 0.6` |
 | Repeat the same music variation | `--seed 1234` |

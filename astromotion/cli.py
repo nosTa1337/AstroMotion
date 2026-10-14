@@ -8,8 +8,9 @@ from pathlib import Path
 import sys
 import time
 
-from .config import MUSIC_STYLES, PRESETS, PROFILES, load_config
+from .config import MUSIC_STYLES, PRESETS, PROFILES, RESOLUTIONS, load_config
 from .pipeline import render
+from .preview import preview_config
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -26,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--profile-variation", action=argparse.BooleanOptionalAction, default=None,
                         help="Kleine zufaellige Profilvariation; --no-profile-variation fuer feste Werte")
     parser.add_argument("--format", choices=("vertical", "square", "landscape"))
-    parser.add_argument("--resolution", choices=("720p", "1080p", "4k"))
+    parser.add_argument("--resolution", choices=RESOLUTIONS)
     parser.add_argument("--duration", type=float)
     parser.add_argument("--loop", action=argparse.BooleanOptionalAction, default=None,
                         help="Nahtloser Video-/Musik-Loop; --no-loop deaktiviert ihn")
@@ -44,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--star-color-strength", type=float,
                         help="Sternfarbstaerke: 0 neutral, 1 volle Farbe; Standard 0.6")
     parser.add_argument("--preview", action="store_true",
-                        help="Schnelle 3s-Vorschau mit 720p/24fps und eigenem Dateinamen")
+                        help="360p-Vorschau mit gleicher Dauer und FPS; eigener Dateiname")
     parser.add_argument("--parallax", type=float)
     parser.add_argument("--speed", type=float)
     parser.add_argument("--title", help="Dezenter Objektname; aktiviert die Beschriftung")
@@ -59,8 +60,6 @@ def main(argv: list[str] | None = None) -> int:
                  if getattr(args, k) is not None}
     if args.loop is not None:
         overrides["loop"] = {"enabled": args.loop}
-    if args.preview:
-        overrides.update({"duration": 3.0, "resolution": "720p", "fps": 24})
     cinematic = {}
     if args.auto_focus is not None:
         cinematic["auto_focus"] = args.auto_focus
@@ -93,6 +92,8 @@ def main(argv: list[str] | None = None) -> int:
             overrides["caption"]["subtitle"] = args.subtitle
     try:
         cfg = load_config(args.config, overrides)
+        if args.preview:
+            cfg = preview_config(cfg)
         if args.print_config:
             print(json.dumps(asdict(cfg), indent=2, ensure_ascii=False))
             return 0
