@@ -68,6 +68,69 @@ def test_periodic_camera_and_twinkle_cover_source_without_borders():
             np.testing.assert_allclose(first[1], st, atol=1e-6)
 
 
+def test_steady_camera_has_even_travel_and_closed_smooth_reversals():
+    layers = scene()
+    camera = Animator(layers, (160, 120), Motion(timing='steady', zoom=.14, rotation_deg=40))
+    steps = []
+    for phase in np.arange(.05, .45, .05):
+        first = camera.matrix(camera_phase(float(phase), 'steady'))
+        next_frame = camera.matrix(camera_phase(float(phase + .01), 'steady'))
+        # Matrix column length measures zoom independently of its rotation.
+        steps.append(np.linalg.norm(next_frame[:, 0]) - np.linalg.norm(first[:, 0]))
+    np.testing.assert_allclose(steps, steps[0], atol=1e-12)
+    for phase in (0, .025, .23, .475, .5, .77):
+        assert camera_phase(phase, 'steady') == pytest.approx(camera_phase(phase + 1, 'steady'))
+        assert camera_phase(phase, 'steady') == pytest.approx(camera_phase(1 - phase, 'steady'))
+    assert camera_phase(0, 'steady') == 0 and camera_phase(.5, 'steady') == 1
+    # At the seam and turnaround, changes shrink quadratically, with no jump
+    # in camera velocity. A straight triangle would fail this check.
+    for endpoint in (0, .5):
+        delta = abs(camera_phase(endpoint + .0001, 'steady') - camera_phase(endpoint, 'steady'))
+        double = abs(camera_phase(endpoint + .0002, 'steady') - camera_phase(endpoint, 'steady'))
+        assert double == pytest.approx(4 * delta, abs=1e-12)
+
+
+@pytest.mark.parametrize('timing', ['smooth', 'steady'])
+@pytest.mark.parametrize('rotation', [-60, 60])
+def test_large_rotation_crops_safely_and_camera_loop_closes(timing, rotation):
+    white = np.ones((331, 477, 3), np.float32)
+    camera = Animator(Layers(white, white, 'screen', {}), (180, 320),
+                      Motion(timing=timing, rotation_deg=rotation, star_rotation_deg=5,
+                             parallax=3, speed=3, center_x=.1, center_y=.9,
+                             pan_x=.15, pan_y=-.15, overscan=1))
+    for phase in np.linspace(0, 1, 21):
+        for foreground in (False, True):
+            assert camera.warp(white, camera.matrix(camera_phase(float(phase), timing), foreground)).min() > .9999
+    np.testing.assert_allclose(camera.matrix(camera_phase(0, timing)), camera.matrix(camera_phase(1, timing)), atol=1e-12)
+
+
+def test_steady_nonloop_camera_and_star_depth_move_without_easing(capsys):
+    assert main(['--camera-timing', 'steady', '--no-loop', '--print-config']) == 0
+    cfg = json.loads(capsys.readouterr().out)
+    assert cfg['motion']['timing'] == 'steady' and not cfg['loop']['enabled']
+    layers = scene()
+    motion = Motion(timing='steady', zoom=.14, rotation_deg=40)
+    camera = Animator(layers, (160, 120), motion)
+    scales = [np.linalg.norm(camera.matrix(t)[:, 0]) for t in np.linspace(0, 1, 11)]
+    np.testing.assert_allclose(np.diff(scales), np.diff(scales)[0], atol=1e-12)
+    stars = PerspectiveStars(layers, camera, Starfield(travel=1), 30)
+    previous = stars.project(0)[3]
+    for phase in np.linspace(.1, 1, 10):
+        current = stars.project(float(phase))[3]
+        np.testing.assert_allclose(previous - current, .1, atol=1e-6)
+        previous = current
+    assert not np.allclose(camera.matrix(0), camera.matrix(1))
+
+
+def test_timing_and_rotation_validation():
+    load_config(overrides={'motion': {'timing': 'steady', 'rotation_deg': 60},
+                           'starfield': {'rotation_deg': -60}})
+    for values in ({'motion': {'timing': 'unknown'}}, {'motion': {'rotation_deg': 60.1}},
+                   {'starfield': {'rotation_deg': -60.1}}):
+        with pytest.raises(ValueError):
+            load_config(overrides=values)
+
+
 def test_short_loop_caption_is_closed_at_both_ends():
     overlay = CaptionOverlay(Caption(title="Nebel", start_seconds=0, hold_seconds=30), (160, 160))
     background = np.zeros((160, 160, 3), np.float32)

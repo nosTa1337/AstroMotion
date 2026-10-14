@@ -223,8 +223,9 @@ def preview_output_path(output: Path) -> Path:
     return output.with_name(output.stem + '_preview.mp4')
 
 
-def collect_render(settings: dict, supplied_input: Path | None = None, *, preview: bool = False):
-    from astromotion.config import MUSIC_STYLES, PROFILES, RESOLUTIONS, apply_profile, load_config
+def collect_render(settings: dict, supplied_input: Path | None = None, *, preview: bool = False,
+                   previous_cfg=None, previous_output: Path | None = None):
+    from astromotion.config import CAMERA_TIMINGS, MAX_ROTATION_DEG, MUSIC_STYLES, PROFILES, RESOLUTIONS, apply_profile, load_config
 
     paths = settings['paths']
     input_dir = Path(paths['input_dir'])
@@ -235,10 +236,12 @@ def collect_render(settings: dict, supplied_input: Path | None = None, *, previe
             raise ValueError(_t('The supplied image is not an existing JPG, PNG or TIFF file.'))
     else:
         image = ask_file(_t('Image filename or full image path'), base=input_dir, suffixes=IMAGE_SUFFIXES)
-    cfg = load_config(PRESET, choose_settings_template(settings))
+    cfg = (load_config(overrides=asdict(previous_cfg)) if previous_cfg is not None
+           else load_config(PRESET, choose_settings_template(settings)))
     cfg.separation.executable = paths['starnet']
     cfg.encoding.ffmpeg, cfg.encoding.ffprobe = paths['ffmpeg'], paths['ffprobe']
-    cfg.caption.enabled, cfg.caption.title, cfg.caption.subtitle = False, '', ''
+    if previous_cfg is None:
+        cfg.caption.enabled, cfg.caption.title, cfg.caption.subtitle = False, '', ''
     print(_t('Profiles: relax = very calm, drift = lateral flight, explore = closer framing; custom = your own settings.'))
     profile = ask_choice(_t('Star-flight profile'), tuple(PROFILES), cfg.profile)
     if profile != cfg.profile:
@@ -249,8 +252,8 @@ def collect_render(settings: dict, supplied_input: Path | None = None, *, previe
     cfg.format = ask_choice('Format', ('vertical', 'square', 'landscape'), cfg.format)
     cfg.loop.enabled = ask_yes('Perfect Loop', cfg.loop.enabled)
     while True:
-        title = ask_text(_t('Title (empty = no text)'))
-        subtitle = ask_text(_t('Subtitle (optional)')) if title else ''
+        title = ask_text(_t('Title (empty = no text)'), cfg.caption.title)
+        subtitle = ask_text(_t('Subtitle (optional)'), cfg.caption.subtitle) if title else ''
         if all(len(text) <= 100 and all(ord(c) >= 32 for c in text) for text in (title, subtitle)):
             cfg.caption.title, cfg.caption.subtitle, cfg.caption.enabled = title, subtitle, bool(title)
             break
@@ -267,11 +270,12 @@ def collect_render(settings: dict, supplied_input: Path | None = None, *, previe
             cfg.profile_variation = ask_yes(_t('Subtle random profile variation'), cfg.profile_variation)
             if cfg.profile_variation:
                 cfg.profile_seed = ask_seed(_t('Profile seed'), cfg.profile_seed)
+        cfg.motion.timing = ask_choice(_t('Camera timing (steady = even travel, smooth = slow start/stop)'), CAMERA_TIMINGS, cfg.motion.timing)
         cfg.motion.zoom = ask_number(_t('Background zoom (0.14 = 14%)'), cfg.motion.zoom, 0, .5)
-        cfg.motion.rotation_deg = ask_number(_t('Background rotation in degrees'), cfg.motion.rotation_deg, -10, 10)
+        cfg.motion.rotation_deg = ask_number(_t('Background rotation in degrees'), cfg.motion.rotation_deg, -MAX_ROTATION_DEG, MAX_ROTATION_DEG)
         cfg.starfield.drift_x = ask_number(_t('Lateral star motion X'), cfg.starfield.drift_x, -.5, .5)
         cfg.starfield.drift_y = ask_number(_t('Lateral star motion Y'), cfg.starfield.drift_y, -.5, .5)
-        cfg.starfield.rotation_deg = ask_number(_t('Star-flight rotation in degrees'), cfg.starfield.rotation_deg, -15, 15)
+        cfg.starfield.rotation_deg = ask_number(_t('Star-flight rotation in degrees'), cfg.starfield.rotation_deg, -MAX_ROTATION_DEG, MAX_ROTATION_DEG)
         cfg.starfield.count = ask_number(_t('Maximum star count'), cfg.starfield.count, 1, 20000, integer=True)
         cfg.starfield.foreground_gain = ask_number(_t('Flying-star brightness'), cfg.starfield.foreground_gain, 0, 3)
         cfg.starfield.color_strength = ask_number(_t('Star color strength (0 = neutral, 1 = full color)'), cfg.starfield.color_strength, 0, 1)
@@ -292,7 +296,7 @@ def collect_render(settings: dict, supplied_input: Path | None = None, *, previe
     if preview:
         print(_t('Choose the full-video filename. The preview adds _preview before .mp4.'))
     while True:
-        output = path_value(ask_text(_t('Output filename'), image.stem + '_astromotion.mp4'), output_dir)
+        output = path_value(ask_text(_t('Output filename'), str(previous_output) if previous_output else image.stem + '_astromotion.mp4'), output_dir)
         if output.suffix.lower() != '.mp4' or output == image:
             print(_t('Please choose a different output path ending in .mp4.'))
             continue
@@ -385,62 +389,74 @@ def main(argv=None) -> int:
         preview = args.preview
         if preview is None:
             preview = ask_choice(_t('Render mode'), ('final', 'preview'), 'final') == 'preview'
-        image, output, cfg, overwrite = collect_render(settings, args.input, preview=preview)
-        if preview:
-            from astromotion.preview import preview_config
-            run_cfg = paired_render_config(cfg)
-            render_cfg = preview_config(run_cfg)
-            destination = preview_output_path(output)
-        else:
-            run_cfg = render_cfg = cfg
-            destination = output
-        print(_t('\nImage: {image}\nVideo: {output}\n{duration:g} s, {fps} FPS, '
-                 '{resolution}, {format}, Loop: {loop}, Profile: {profile}, Music: {music}',
-                 image=image, output=destination, duration=render_cfg.duration, fps=render_cfg.fps,
-                 resolution=render_cfg.resolution, format=render_cfg.format,
-                 loop=_t('on') if cfg.loop.enabled else _t('off'),
-                 profile=render_cfg.profile, music=render_cfg.audio.mode))
-        if preview:
-            print(_t('Preview: {width} x {height}; full video: {resolution}. Duration and FPS are unchanged.',
-                     width=render_cfg.size[0], height=render_cfg.size[1], resolution=cfg.resolution))
-        if cfg.audio.mode == 'ambient':
-            print(_t('Music style: {style}', style=render_cfg.audio.style))
-        if cfg.caption.enabled:
-            print(_t('Text: {caption}', caption=cfg.caption.title + (f' / {cfg.caption.subtitle}' if cfg.caption.subtitle else '')))
-        if not args.dry_run and not ask_yes(_t('Start rendering'), True):
-            print(_t('Rendering cancelled.'))
-            return 0
-        settings['defaults'] = remembered_defaults(cfg)
-        save_settings(settings_path, settings)
-        if args.dry_run:
-            print(json.dumps(asdict(render_cfg), indent=2, ensure_ascii=False))
-            print(_t('Defaults saved. No video rendered.'))
-            return 0
-        with tempfile.TemporaryDirectory(prefix='astromotion-wizard-') as folder:
-            config_path = Path(folder) / 'render.json'
-            config_path.write_text(json.dumps(asdict(render_cfg), ensure_ascii=False), encoding='utf-8')
-            preview_output = preview_output_path(output)
-            preview_cache = preview_output.parent / (preview_output.stem + '_assets')
-            result = subprocess.run(render_command(image, destination, config_path, overwrite,
-                                                  None if preview else preview_cache), cwd=ROOT, check=False).returncode
-            if result:
-                return result
-            remember_recent_settings(settings, image, cfg)
-            save_settings(settings_path, settings)
+        previous_cfg, previous_output, cached_assets = None, None, None
+        supplied_input = args.input
+        while True:
+            image, output, cfg, overwrite = collect_render(settings, supplied_input, preview=preview,
+                                                          previous_cfg=previous_cfg, previous_output=previous_output)
             if preview:
-                print(_t('Preview ready: {path}', path=destination))
-                if not ask_yes(_t('Render the full-resolution video now with the same motion and music')):
-                    return 0
-                if output.exists() and not output.is_file():
-                    raise ValueError(_t('The output path is a folder. Please choose a filename.'))
-                overwrite_final = output.exists() and ask_yes(_t('Video already exists. Replace it'))
-                if output.exists() and not overwrite_final:
-                    print(_t('Rendering cancelled.'))
-                    return 0
-                config_path.write_text(json.dumps(asdict(run_cfg), ensure_ascii=False), encoding='utf-8')
-                return subprocess.run(render_command(image, output, config_path, overwrite_final,
-                                                     preview_cache), cwd=ROOT, check=False).returncode
-            return 0
+                from astromotion.preview import preview_config
+                run_cfg = paired_render_config(cfg)
+                render_cfg = preview_config(run_cfg)
+                destination = preview_output_path(output)
+            else:
+                run_cfg = render_cfg = cfg
+                destination = output
+            print(_t('\nImage: {image}\nVideo: {output}\n{duration:g} s, {fps} FPS, '
+                     '{resolution}, {format}, Loop: {loop}, Profile: {profile}, Music: {music}',
+                     image=image, output=destination, duration=render_cfg.duration, fps=render_cfg.fps,
+                     resolution=render_cfg.resolution, format=render_cfg.format,
+                     loop=_t('on') if cfg.loop.enabled else _t('off'),
+                     profile=render_cfg.profile, music=render_cfg.audio.mode))
+            if preview:
+                print(_t('Preview: {width} x {height}; full video: {resolution}. Duration and FPS are unchanged.',
+                         width=render_cfg.size[0], height=render_cfg.size[1], resolution=cfg.resolution))
+            if cfg.audio.mode == 'ambient':
+                print(_t('Music style: {style}', style=render_cfg.audio.style))
+            if cfg.caption.enabled:
+                print(_t('Text: {caption}', caption=cfg.caption.title + (f' / {cfg.caption.subtitle}' if cfg.caption.subtitle else '')))
+            if not args.dry_run and not ask_yes(_t('Start rendering'), True):
+                print(_t('Rendering cancelled.'))
+                return 0
+            settings['defaults'] = remembered_defaults(cfg)
+            save_settings(settings_path, settings)
+            if args.dry_run:
+                print(json.dumps(asdict(render_cfg), indent=2, ensure_ascii=False))
+                print(_t('Defaults saved. No video rendered.'))
+                return 0
+            with tempfile.TemporaryDirectory(prefix='astromotion-wizard-') as folder:
+                config_path = Path(folder) / 'render.json'
+                config_path.write_text(json.dumps(asdict(render_cfg), ensure_ascii=False), encoding='utf-8')
+                preview_output = preview_output_path(output)
+                preview_cache = preview_output.parent / (preview_output.stem + '_assets')
+                reuse_cache = cached_assets or (None if preview else preview_cache)
+                result = subprocess.run(render_command(image, destination, config_path, overwrite,
+                                                      reuse_cache), cwd=ROOT, check=False).returncode
+                if result:
+                    return result
+                remember_recent_settings(settings, image, cfg)
+                save_settings(settings_path, settings)
+                if preview:
+                    # Keep the original cache even when adjusted previews use a
+                    # new filename: a reused export need not write another cache.
+                    cached_assets = cached_assets or preview_cache
+                    print(_t('Preview ready: {path}', path=destination))
+                    if not ask_yes(_t('Render the full-resolution video now with the same motion and music')):
+                        if not ask_yes(_t('Make adjustments')):
+                            return 0
+                        print(_t('Adjust the preview settings. Enter keeps each value; - clears optional text.'))
+                        previous_cfg, previous_output, supplied_input = run_cfg, output, image
+                        continue
+                    if output.exists() and not output.is_file():
+                        raise ValueError(_t('The output path is a folder. Please choose a filename.'))
+                    overwrite_final = output.exists() and ask_yes(_t('Video already exists. Replace it'))
+                    if output.exists() and not overwrite_final:
+                        print(_t('Rendering cancelled.'))
+                        return 0
+                    config_path.write_text(json.dumps(asdict(run_cfg), ensure_ascii=False), encoding='utf-8')
+                    return subprocess.run(render_command(image, output, config_path, overwrite_final,
+                                                         cached_assets), cwd=ROOT, check=False).returncode
+                return 0
     except (KeyboardInterrupt, EOFError):
         print(_t('\nCancelled.'))
         return 130

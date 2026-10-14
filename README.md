@@ -36,6 +36,8 @@ An optional menu controls background zoom, rotation, lateral star motion, star c
 
 Choose **`preview`** as the render mode for a **360p preview with the same duration, FPS, loop and animation settings** as the full video (360 × 640 vertically). The preview adds `_preview` to the selected video filename. Afterwards, the wizard offers to render the full-resolution video with the same random motion variation and music arrangement. Preview mode keeps your saved full-video resolution. StarNet2 runs once; the full export reuses its checked working-size output from the preview's `_assets` folder.
 
+If you decline the full export, **Make adjustments?** reopens the wizard for the same photo with all preview values prefilled, including title, subtitle, output filename and the resolved motion/music seeds. Edit any value and render another preview; Enter keeps the current value and `-` clears optional text. The checked StarNet2 cache is reused, including when you choose a different output filename. After each preview you can export the full video or adjust again.
+
 Keep that folder to reuse the separation, including on a later full export with the same video filename. The cache checks the source photo, working pixels/size, StarNet2 settings, executable/model files and output checksum. A missing, changed or damaged cache causes a fresh genuine StarNet2 run. Repeating a render can also reuse its own `_assets` cache. `render_report.json` records whether the cache was used. For separate CLI exports, append `--starnet-cache "photo_preview_assets"` while keeping your StarNet2 executable configured; `--starless` remains for original-size externally separated images.
 
 The wizard remembers the **five most recent distinct setups from successful previews or video renders**, newest first. After choosing a photo, select a recent template or `0` for the current defaults, then adjust any setting in the normal menus. Reusing a setup moves it to the top. Titles and subtitles are entered afresh for each photo; paths come from your current setup. Dry runs, cancelled launches and failed renders do not add a history entry.
@@ -101,6 +103,8 @@ Append these options to your launch command:
 | Star-flight profile | `--profile relax`, `drift` or `explore` |
 | Ambient style | `--music-style random`, `warm`, `deep`, `shimmer`, `pulse` or `classic` |
 | Longer, slower loop video | `--duration 45` |
+| More even background zoom and rotation | `--camera-timing steady` |
+| Continuous forward camera movement | `--camera-timing steady --no-loop` |
 | Landscape / square format | `--format landscape` / `--format square` |
 | Resolution | `--resolution 360p`, `720p`, `1080p` or `4k` |
 | 360p preview with full duration and FPS | `--preview` |
@@ -170,10 +174,11 @@ Edit the values in `my_config.yaml`, then launch with **`--config my_config.yaml
 
 | Setting | Recommended setup | Behavior |
 |---|---|---|
+| `motion.timing` | `smooth` | `steady` gives even camera travel; `smooth` keeps the gradual start/stop |
 | `motion.zoom` | `0.14` | Background zoom up to 14%; lower = calmer, `0` = no zoom |
-| `motion.rotation_deg` | `2.0` | Background rotation range in degrees; `0` = no rotation |
+| `motion.rotation_deg` | `2.0` | Background rotation range in degrees at speed `1`; `-60..60`, `0` = no rotation |
 | `starfield.drift_x` / `drift_y` | `0.12` / `-0.035` | Lateral star movement; smaller magnitudes = less drift |
-| `starfield.rotation_deg` | `4.75` | Star-flight rotation range in degrees; `0` = no rotation |
+| `starfield.rotation_deg` | `4.75` | Star-flight rotation range in degrees; `-60..60`, `0` = no rotation |
 | `starfield.count` | `4500` | Maximum number of animated stars actually detected in the photo |
 | `starfield.color_strength` | `0.6` | Flying-star color strength: `0` = neutral, `1` = full color |
 | `starfield.foreground_gain` | `1.15` | Brightness of the flying stars |
@@ -185,6 +190,8 @@ Edit the values in `my_config.yaml`, then launch with **`--config my_config.yaml
 Flying-star colors come from the StarNet2 residual. Highly colored residuals can look exaggerated when enlarged, so their color strength defaults to `0.6`. This adjustment preserves the stars' luminance, profiles and motion; it does not change the background colors. Use a lower value for more neutral stars or `1` for the previous full color strength. The wizard exposes this setting in its optional menu.
 
 Star depths are assigned artistically, not measured astronomical distances. In a seamless loop, stars fly forward while the background moves gently in and out. Music is crossfaded at the seam. You can also set `star_cycles: 1` in the `loop` section: `2` gives two complete star traversals per video, increasing the pace. Keep it at `1` for a calm flight. `starfield.travel` affects star movement only when looping is disabled.
+
+For short clips, choose **Camera timing: `steady`** in the wizard's optional menu. It removes the long camera acceleration/deceleration: a loop travels at constant speed for 90% of its duration, with short rounded reversals (0.25 seconds on each side of a turning point in a 10-second clip). The background still approaches and returns to close the loop. For continuous forward zoom, turn Perfect Loop off and keep `steady`; the video then has different start/end frames. Individual looping stars retain their forward depth motion. Larger rotation values crop more of the photo to keep the image borders covered; negative values reverse the direction. Start with a 10–20° rotation range and reduce `motion.zoom` if a 10-second clip still feels too fast.
 
 CLI options override the configuration file. Relative file paths inside a configuration are resolved from that file's folder. `--print-config` shows the effective settings without rendering.
 

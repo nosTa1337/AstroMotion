@@ -34,7 +34,7 @@ def save_contact_sheet(path: Path, original, starless, layers: Layers, cfg: Conf
     particles = PerspectiveStars(layers, camera, cfg.starfield, cfg.fps, cfg.loop) if cfg.starfield.enabled else None
     frames = []
     for t in (0., .25, .5):
-        nebula, stars = camera.frame_layers(camera_phase(t) if cfg.loop.enabled else t, 0)
+        nebula, stars = camera.frame_layers(camera_phase(t, cfg.motion.timing) if cfg.loop.enabled else t, 0)
         rgb = processor.apply(nebula, stars * cfg.starfield.farfield_gain if particles else stars)
         frames.append(particles.composite(rgb, t, cfg.actual_duration) if particles else rgb)
     images = [original, starless, to_srgb(layers.nebula), *frames]
@@ -61,7 +61,7 @@ def save_contact_sheet(path: Path, original, starless, layers: Layers, cfg: Conf
                 continue  # inspect individual moving stars in the short video
             if col >= 3:
                 t = (0., .25, .5)[col-3]
-                x,y = camera.matrix(camera_phase(t) if cfg.loop.enabled else t, stars=True) @ [x,y,1]
+                x,y = camera.matrix(camera_phase(t, cfg.motion.timing) if cfg.loop.enabled else t, stars=True) @ [x,y,1]
             crop=im.crop((int(x)-35,int(y)-35,int(x)+35,int(y)+35)).resize((130,130))
             canvas.paste(crop,(col*250+55,435+row*137))
     path.parent.mkdir(parents=True, exist_ok=True)

@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 import time
 
-from .config import MUSIC_STYLES, PRESETS, PROFILES, RESOLUTIONS, load_config
+from .config import CAMERA_TIMINGS, MUSIC_STYLES, PRESETS, PROFILES, RESOLUTIONS, load_config
 from .pipeline import render
 from .preview import preview_config
 
@@ -52,6 +52,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="360p-Vorschau mit gleicher Dauer und FPS; eigener Dateiname")
     parser.add_argument("--parallax", type=float)
     parser.add_argument("--speed", type=float)
+    parser.add_argument("--camera-timing", choices=CAMERA_TIMINGS,
+                        help="steady: gleichmaessiger Zoom; Loop mit kurzen weichen Umkehrpunkten")
     parser.add_argument("--title", help="Dezenter Objektname; aktiviert die Beschriftung")
     parser.add_argument("--subtitle", help="Optionale zweite Zeile, z. B. MESSIER 42")
     parser.add_argument("--overwrite", action="store_true")
@@ -77,7 +79,7 @@ def main(argv: list[str] | None = None) -> int:
         overrides["starfield"] = starfield
     for group, values in {
         "separation": {"executable": args.starnet, "mode": args.starnet_mode},
-        "motion": {"parallax": args.parallax, "speed": args.speed},
+        "motion": {"parallax": args.parallax, "speed": args.speed, "timing": args.camera_timing},
         "audio": {"mode": "file" if args.audio else args.music,
                   "file": str(args.audio.resolve()) if args.audio else None, "seed": args.seed,
                   "style": args.music_style, "development": args.music_development},

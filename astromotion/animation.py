@@ -16,6 +16,10 @@ def smootherstep(t: float) -> float:
     return t * t * t * (t * (t * 6 - 15) + 10)
 
 
+def motion_progress(t: float, timing: str) -> float:
+    return min(1.0, max(0.0, t)) if timing == "steady" else smootherstep(t)
+
+
 def _rotated_extent(a: float, b: float, max_angle: float) -> float:
     """Maximum a*cos(theta)+b*sin(theta) on [0,max_angle]."""
     theta = min(max_angle, math.atan2(b, a))
@@ -46,7 +50,7 @@ class Animator:
 
     def matrix(self, t: float, stars: bool = False) -> np.ndarray:
         m = self.motion
-        u = smootherstep(t)
+        u = motion_progress(t, m.timing)
         foreground = m.parallax if stars else 0.0
         zoom = 1 + (m.zoom + m.star_zoom_extra * foreground) * u * m.speed
         angle = (m.rotation_deg + m.star_rotation_deg * foreground) * (u - .5) * m.speed

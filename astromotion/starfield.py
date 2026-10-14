@@ -13,7 +13,7 @@ import math
 import cv2
 import numpy as np
 
-from .animation import Animator, smootherstep
+from .animation import Animator, motion_progress
 from .config import Loop, Starfield
 from .imaging import FloatImage, to_srgb
 from .separation import Layers
@@ -63,6 +63,7 @@ class PerspectiveStars:
     def __init__(self, layers: Layers, animator: Animator, cfg: Starfield, fps: int,
                  loop: Loop | None = None):
         self.cfg, self.size, self.fps = cfg, animator.size, fps
+        self.timing = animator.motion.timing
         self.loop = loop or Loop()
         self.w, self.h = self.size
         self.scale = min(self.size) / 1080
@@ -147,7 +148,7 @@ class PerspectiveStars:
 
     def project(self, t: float) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         cfg = self.cfg
-        u = smootherstep(t)
+        u = motion_progress(t, self.timing)
         distance = cfg.travel * u
         span = cfg.far - cfg.near
         if self.loop.enabled:

@@ -15,9 +15,22 @@ from .encoding import resolve_binary
 from .music import synthesize_ambient
 
 
-def camera_phase(phase: float) -> float:
-    """One smooth approach/return cycle, with identical endpoint derivatives."""
-    return .5 - .5 * math.cos(2 * math.pi * (phase % 1))
+def camera_phase(phase: float, timing: str = "smooth") -> float:
+    """Closed approach/return cycle; steady travels evenly between short turns."""
+    phase %= 1
+    if timing == "steady":
+        # A rounded triangle: constant velocity for 90% of the loop, with
+        # continuous velocity through its short reversals and the loop seam.
+        turn = .025
+        position = min(phase, 1 - phase)
+        if position < turn:
+            distance = position * position / (2 * turn)
+        elif position > .5 - turn:
+            distance = .5 - turn - (.5 - position) ** 2 / (2 * turn)
+        else:
+            distance = position - turn / 2
+        return distance / (.5 - turn)
+    return .5 - .5 * math.cos(2 * math.pi * phase)
 
 
 def splice_audio_loop(source: Path, output: Path, frame_count: int, overlap: int) -> None:
