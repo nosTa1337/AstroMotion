@@ -68,6 +68,43 @@ def test_periodic_camera_and_twinkle_cover_source_without_borders():
             np.testing.assert_allclose(first[1], st, atol=1e-6)
 
 
+@pytest.mark.parametrize('timing', ['smooth', 'steady'])
+@pytest.mark.parametrize('rotation', [30, -30, 360])
+def test_camera_rotation_starts_at_original_orientation_and_reaches_target(timing, rotation):
+    motion = Motion(timing=timing, rotation_deg=rotation, star_rotation_deg=2,
+                    parallax=1.3, zoom=.15, pan_x=.05, pan_y=-.02)
+    camera = Animator(scene(), (160, 120), motion)
+
+    def assert_angle(t, foreground, expected):
+        matrix = camera.matrix(t, foreground)
+        angle = np.degrees(np.arctan2(matrix[0, 1], matrix[0, 0]))
+        assert abs((angle - expected + 180) % 360 - 180) < 1e-9
+
+    for foreground in (False, True):
+        target = rotation + (motion.star_rotation_deg * motion.parallax if foreground else 0)
+        initial = camera.matrix(0, foreground)[:, :2]
+        np.testing.assert_allclose(initial, np.eye(2) * camera.base_scale, atol=1e-12)
+        # Non-loop playback starts upright and ends at the requested angle.
+        assert_angle(.5, foreground, target / 2)
+        assert_angle(1, foreground, target)
+        # A loop approaches the target, then returns to the original angle.
+        for phase, fraction in ((0, 0), (.25, .5), (.5, 1), (.75, .5), (1, 0)):
+            assert_angle(camera_phase(phase, timing), foreground, target * fraction)
+
+
+@pytest.mark.parametrize('timing', ['smooth', 'steady'])
+@pytest.mark.parametrize('rotation', [-25, 25])
+def test_crop_covers_entire_rotation_from_zero_without_animated_zoom(timing, rotation):
+    white = np.ones((331, 477, 3), np.float32)
+    camera = Animator(Layers(white, white, 'screen', {}), (180, 320),
+                      Motion(timing=timing, rotation_deg=rotation, star_rotation_deg=0,
+                             zoom=0, star_zoom_extra=0, pan_x=0, pan_y=0, parallax=0,
+                             speed=1, overscan=1))
+    for t in np.linspace(0, 1, 21):
+        assert camera.warp(white, camera.matrix(float(t))).min() > .9999
+        assert camera.warp(white, camera.matrix(camera_phase(float(t), timing))).min() > .9999
+
+
 def test_steady_camera_has_even_travel_and_closed_smooth_reversals():
     layers = scene()
     camera = Animator(layers, (160, 120), Motion(timing='steady', zoom=.14, rotation_deg=40))

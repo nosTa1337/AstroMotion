@@ -176,7 +176,7 @@ Edit the values in `my_config.yaml`, then launch with **`--config my_config.yaml
 |---|---|---|
 | `motion.timing` | `smooth` | `steady` gives even camera travel; `smooth` keeps the gradual start/stop |
 | `motion.zoom` | `0.14` | Animated background zoom: `0..1`; at speed `1`, `0.14` = +14%, `1.0` = +100% (2×), `0` = no zoom |
-| `motion.rotation_deg` | `2.0` | Background rotation range in degrees at speed `1`; `-360..360`, `0` = no rotation |
+| `motion.rotation_deg` | `2.0` | Target background angle from the photo's original orientation at speed `1`; `-360..360`, `0` = no rotation |
 | `starfield.drift_x` / `drift_y` | `0.12` / `-0.035` | Lateral star movement; smaller magnitudes = less drift |
 | `starfield.rotation_deg` | `4.75` | Star-flight rotation range in degrees; `-360..360`, `0` = no rotation |
 | `starfield.count` | `4500` | Maximum number of animated stars actually detected in the photo |
@@ -193,7 +193,9 @@ Star depths are assigned artistically, not measured astronomical distances. In a
 
 For short clips, choose **Camera timing: `steady`** in the wizard's optional menu. It removes the long camera acceleration/deceleration: a loop travels at constant speed for 90% of its duration, with short rounded reversals (0.25 seconds on each side of a turning point in a 10-second clip). The background still approaches and returns to close the loop. For continuous forward zoom, turn Perfect Loop off and keep `steady`; the video then has different start/end frames. Individual looping stars retain their forward depth motion. Larger rotation values crop more of the photo to keep the image borders covered; negative values reverse the direction. Start with a 10–20° rotation range and reduce `motion.zoom` if a 10-second clip still feels too fast.
 
-Rotation coverage is automatic: the renderer chooses a safe base crop for the entire motion path, including the first frame, even when `motion.zoom` is `0`. You do not need to raise animated zoom to hide rotation corners. A larger crop shows less of the original photo; animated zoom then adds its configured magnification on top. Rotation values describe the angle range, not an endless spin: Perfect Loop returns to its starting orientation.
+Background rotation starts at **0°: the photo's original orientation**. At speed `1`, a setting of `40` rotates from `0°` to `40°`; Perfect Loop then returns to `0°`. Negative values reverse the direction. The first frame is no longer pre-rotated by half of the configured angle.
+
+Rotation coverage is automatic: the renderer chooses a safe base crop for the full rotation from `0°` to the target angle, including the first frame, even when `motion.zoom` is `0`. You do not need to raise animated zoom to hide rotation corners. A larger crop shows less of the original photo; animated zoom then adds its configured magnification on top. Perfect Loop returns to the original orientation rather than spinning endlessly.
 
 CLI options override the configuration file. Relative file paths inside a configuration are resolved from that file's folder. `--print-config` shows the effective settings without rendering.
 

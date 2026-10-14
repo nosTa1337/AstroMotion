@@ -20,7 +20,7 @@ MAX_BACKGROUND_ZOOM = 1.0
 @dataclass
 class Motion:
     zoom: float = 0.065  # total nebula zoom at speed=1
-    rotation_deg: float = 1.8  # total rotation, centered around zero
+    rotation_deg: float = 1.8  # target rotation from the photo's 0° at speed=1
     pan_x: float = 0.018  # total displacement as fraction of output width
     pan_y: float = -0.012
     parallax: float = 1.0

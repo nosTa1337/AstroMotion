@@ -34,7 +34,9 @@ class Animator:
         m = motion
         p = m.parallax
         # Both layers start coincident. Foreground increasingly outruns background.
-        self.max_rotation = math.radians((abs(m.rotation_deg) + abs(m.star_rotation_deg) * p) * m.speed / 2)
+        # Rotation begins at the photo's original orientation and reaches the
+        # configured angle, so crop coverage must bound the full excursion.
+        self.max_rotation = math.radians((abs(m.rotation_deg) + abs(m.star_rotation_deg) * p) * m.speed)
         dx = abs(m.pan_x) * ow * m.speed * (1 + .65 * p) / 2
         dy = abs(m.pan_y) * oh * m.speed * (1 + .65 * p) / 2
         # Transform inverse maps all viewport corners into the source rectangle.
@@ -53,7 +55,7 @@ class Animator:
         u = motion_progress(t, m.timing)
         foreground = m.parallax if stars else 0.0
         zoom = 1 + (m.zoom + m.star_zoom_extra * foreground) * u * m.speed
-        angle = (m.rotation_deg + m.star_rotation_deg * foreground) * (u - .5) * m.speed
+        angle = (m.rotation_deg + m.star_rotation_deg * foreground) * u * m.speed
         mat = cv2.getRotationMatrix2D(self.center, angle, self.base_scale * zoom)
         ow, oh = self.size
         cx, cy = self.center
