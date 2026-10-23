@@ -86,11 +86,41 @@ def test_camera_rotation_starts_at_original_orientation_and_reaches_target(timin
         initial = camera.matrix(0, foreground)[:, :2]
         np.testing.assert_allclose(initial, np.eye(2) * camera.base_scale, atol=1e-12)
         # Non-loop playback starts upright and ends at the requested angle.
-        assert_angle(.5, foreground, target / 2)
         assert_angle(1, foreground, target)
-        # A loop approaches the target, then returns to the original angle.
-        for phase, fraction in ((0, 0), (.25, .5), (.5, 1), (.75, .5), (1, 0)):
+        # Intermediate rotation may wait for zoom, but the loop retraces each pose.
+        np.testing.assert_allclose(camera.matrix(camera_phase(.25, timing), foreground),
+                                   camera.matrix(camera_phase(.75, timing), foreground), atol=1e-12)
+        for phase, fraction in ((0, 0), (.5, 1), (1, 0)):
             assert_angle(camera_phase(phase, timing), foreground, target * fraction)
+
+
+@pytest.mark.parametrize('timing', ['smooth', 'steady'])
+@pytest.mark.parametrize('size', [(160, 120), (320, 240), (90, 160), (160, 90), (120, 120)])
+@pytest.mark.parametrize('rotation,zoom,center', [(40, .14, (.5, .5)),
+                                               (-360, 0, (.1, .9)),
+                                               (360, 1, (.9, .1))])
+def test_zoom_releases_motion_only_when_no_new_borders_can_appear(timing, size, rotation, zoom, center):
+    white = np.ones((120, 160, 3), np.float32)
+    camera = Animator(Layers(white, white, 'screen', {}), size,
+                      Motion(timing=timing, zoom=zoom, rotation_deg=rotation,
+                             pan_x=.15, pan_y=-.15, parallax=3, speed=3,
+                             center_x=center[0], center_y=center[1], overscan=1))
+    ow, oh = size
+    fill = max((ow - 1) / 159, (oh - 1) / 119)
+    for phase in np.linspace(0, 1, 81):
+        t = camera_phase(float(phase), timing)
+        for foreground in (False, True):
+            matrix = camera.matrix(t, foreground)
+            scale = np.linalg.norm(matrix[:, 0])
+            frame = camera.warp(white, matrix)
+            if scale < fill:
+                # Before format bars close, only centered zoom is allowed.
+                expected = [[scale, 0, (ow - 1 - 159 * scale) / 2],
+                            [0, scale, (oh - 1 - 119 * scale) / 2]]
+                np.testing.assert_allclose(matrix, expected, atol=1e-10)
+            else:
+                assert frame.min() > .9999, (phase, foreground, size)
+    np.testing.assert_allclose(camera.matrix(0), camera.matrix(camera_phase(1, timing)), atol=1e-12)
 
 
 @pytest.mark.parametrize('timing', ['smooth', 'steady'])

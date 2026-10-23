@@ -37,17 +37,23 @@ class Animator:
         self.max_rotation = math.radians((abs(m.rotation_deg) + abs(m.star_rotation_deg) * p) * m.speed)
         dx = abs(m.pan_x) * ow * m.speed * (1 + .65 * p)
         dy = abs(m.pan_y) * oh * m.speed * (1 + .65 * p)
-        # Transform inverse maps all viewport corners into the source rectangle.
-        # Bound translation by its norm for every angle, with interpolation margin.
-        radius = math.hypot(dx, dy)
-        ex = _rotated_extent(ow / 2 + 3, oh / 2 + 3, self.max_rotation) + radius
-        ey = _rotated_extent(oh / 2 + 3, ow / 2 + 3, self.max_rotation) + radius
-        cx, cy = m.center_x * (self.w - 1), m.center_y * (self.h - 1)
-        self.center = (cx, cy)
+        self.pan_radius = math.hypot(dx, dy)
+        self.center = (m.center_x * (self.w - 1), m.center_y * (self.h - 1))
         self.base_scale = min(ow / self.w, oh / self.h)
-        self.crop_scale = max(ex / min(cx, self.w - 1 - cx),
-                              ey / min(cy, self.h - 1 - cy)) * m.overscan
+        self.crop_scale = self._coverage_scale(1)
         self.twinkle_mask: FloatImage | None = None
+
+    def _coverage_scale(self, progress: float) -> float:
+        """Monotone coverage bound for every pose up to this motion progress."""
+        ow, oh = self.size
+        angle = self.max_rotation * progress
+        a, b = (ow - 1) / 2 + 3 * progress, (oh - 1) / 2 + 3 * progress
+        ex = _rotated_extent(a, b, angle) + self.pan_radius * progress
+        ey = _rotated_extent(b, a, angle) + self.pan_radius * progress
+        cx = (self.w - 1) / 2 + (self.center[0] - (self.w - 1) / 2) * progress
+        cy = (self.h - 1) / 2 + (self.center[1] - (self.h - 1) / 2) * progress
+        return max(ex / min(cx, self.w - 1 - cx),
+                   ey / min(cy, self.h - 1 - cy)) * (1 + (self.motion.overscan - 1) * progress)
 
     def matrix(self, t: float, stars: bool = False) -> np.ndarray:
         m = self.motion
@@ -58,17 +64,28 @@ class Animator:
         foreground = m.parallax if stars else 0.0
         zoom = 1 + (m.zoom + m.star_zoom_extra * foreground) * m.speed
         scale = self.base_scale + (self.crop_scale * zoom - self.base_scale) * u
-        angle = (m.rotation_deg + m.star_rotation_deg * foreground) * u * m.speed
-        cx = (self.w - 1) / 2 + (self.center[0] - (self.w - 1) / 2) * u
-        cy = (self.h - 1) / 2 + (self.center[1] - (self.h - 1) / 2) * u
+        pose = u
+        if self._coverage_scale(pose) > scale:
+            # Zoom first; release only as much rotation/pan/focus as fits safely.
+            low, high = 0.0, pose
+            for _ in range(24):
+                middle = (low + high) / 2
+                if self._coverage_scale(middle) <= scale:
+                    low = middle
+                else:
+                    high = middle
+            pose = low
+        angle = (m.rotation_deg + m.star_rotation_deg * foreground) * pose * m.speed
+        cx = (self.w - 1) / 2 + (self.center[0] - (self.w - 1) / 2) * pose
+        cy = (self.h - 1) / 2 + (self.center[1] - (self.h - 1) / 2) * pose
         mat = cv2.getRotationMatrix2D((cx, cy), angle, scale)
         ow, oh = self.size
-        mat[0, 2] += (ow - 1) / 2 - cx + m.pan_x * ow * u * m.speed * (1 + .65 * foreground)
-        mat[1, 2] += (oh - 1) / 2 - cy + m.pan_y * oh * u * m.speed * (1 + .65 * foreground)
+        mat[0, 2] += (ow - 1) / 2 - cx + m.pan_x * ow * pose * m.speed * (1 + .65 * foreground)
+        mat[1, 2] += (oh - 1) / 2 - cy + m.pan_y * oh * pose * m.speed * (1 + .65 * foreground)
         return mat
 
     def warp(self, image: FloatImage, matrix: np.ndarray) -> FloatImage:
-        # Uncovered areas stay black while approaching the crop; never repeat stars.
+        # Only initial aspect-ratio bars remain black; never mirror or repeat stars.
         return cv2.warpAffine(image, matrix, self.size, flags=cv2.INTER_LINEAR,
                               borderMode=cv2.BORDER_CONSTANT, borderValue=0)
 
