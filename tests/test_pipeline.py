@@ -73,7 +73,7 @@ def test_mismatched_and_missing_stars_fail(pair):
 
 @pytest.mark.parametrize("format", ["vertical", "square", "landscape"])
 @pytest.mark.parametrize("center", [(.5, .5), (.1, .9)])
-def test_no_black_corners_under_extreme_motion(format, center):
+def test_full_photo_start_and_safe_destination_under_extreme_motion(format, center):
     cfg = Config(format=format, resolution="720p")
     m = Motion(zoom=1.0, star_zoom_extra=.5, rotation_deg=-360, star_rotation_deg=-5,
                pan_x=.15, pan_y=-.15, parallax=3, speed=3, overscan=1,
@@ -81,10 +81,30 @@ def test_no_black_corners_under_extreme_motion(format, center):
     # A white source makes any out-of-source sampling immediately detectable.
     source = np.ones((331, 477, 3), np.float32)
     animator = Animator(Layers(source, source, "screen", {}), cfg.size, m)
-    for t in np.linspace(0, 1, 11):
-        for stars in (False, True):
-            warped = animator.warp(source, animator.matrix(float(t), stars))
-            assert float(warped.min()) >= .9999
+    ow, oh = cfg.size
+    fit = min(ow / 477, oh / 331)
+    corners = np.array([[0, 0, 1], [476, 0, 1], [0, 330, 1], [476, 330, 1]])
+    expected = np.array([[fit, 0, (ow - 1 - 476 * fit) / 2],
+                         [0, fit, (oh - 1 - 330 * fit) / 2]])
+    for stars in (False, True):
+        np.testing.assert_allclose(animator.matrix(0, stars), expected, atol=1e-12)
+        projected = corners @ animator.matrix(0, stars).T
+        assert projected[:, 0].min() >= -.5 and projected[:, 0].max() <= ow - .5
+        assert projected[:, 1].min() >= -.5 and projected[:, 1].max() <= oh - .5
+        warped = animator.warp(source, animator.matrix(1, stars))
+        assert float(warped.min()) >= .9999
+
+
+@pytest.mark.parametrize('timing', ['smooth', 'steady'])
+@pytest.mark.parametrize('rotation', [-360, 0, 360])
+def test_start_is_original_photo_despite_zoom_focus_pan_and_overscan(timing, rotation):
+    source = np.random.default_rng(42).random((120, 160, 3), dtype=np.float32)
+    motion = Motion(timing=timing, zoom=1, rotation_deg=rotation, overscan=1.2,
+                    center_x=.1, center_y=.9, pan_x=.15, pan_y=-.15,
+                    parallax=3, speed=3, star_zoom_extra=.5, star_rotation_deg=5)
+    camera = Animator(Layers(source, source, 'screen', {}), (160, 120), motion)
+    for image in camera.frame_layers(0, 0):
+        np.testing.assert_array_equal(image, source)
 
 
 def test_real_parallax_and_speed_zero(pair):

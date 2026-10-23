@@ -1,4 +1,4 @@
-"""Independent layer cameras with smooth motion and analytic crop safety."""
+"""Independent layer cameras that approach a safe crop from the full photo."""
 from __future__ import annotations
 
 import math
@@ -33,12 +33,10 @@ class Animator:
         ow, oh = size
         m = motion
         p = m.parallax
-        # Both layers start coincident. Foreground increasingly outruns background.
-        # Rotation begins at the photo's original orientation and reaches the
-        # configured angle, so crop coverage must bound the full excursion.
+        # Reserve rotation/pan coverage for the destination, never the first frame.
         self.max_rotation = math.radians((abs(m.rotation_deg) + abs(m.star_rotation_deg) * p) * m.speed)
-        dx = abs(m.pan_x) * ow * m.speed * (1 + .65 * p) / 2
-        dy = abs(m.pan_y) * oh * m.speed * (1 + .65 * p) / 2
+        dx = abs(m.pan_x) * ow * m.speed * (1 + .65 * p)
+        dy = abs(m.pan_y) * oh * m.speed * (1 + .65 * p)
         # Transform inverse maps all viewport corners into the source rectangle.
         # Bound translation by its norm for every angle, with interpolation margin.
         radius = math.hypot(dx, dy)
@@ -46,25 +44,31 @@ class Animator:
         ey = _rotated_extent(oh / 2 + 3, ow / 2 + 3, self.max_rotation) + radius
         cx, cy = m.center_x * (self.w - 1), m.center_y * (self.h - 1)
         self.center = (cx, cy)
-        self.base_scale = max(ex / min(cx, self.w - 1 - cx),
+        self.base_scale = min(ow / self.w, oh / self.h)
+        self.crop_scale = max(ex / min(cx, self.w - 1 - cx),
                               ey / min(cy, self.h - 1 - cy)) * m.overscan
         self.twinkle_mask: FloatImage | None = None
 
     def matrix(self, t: float, stars: bool = False) -> np.ndarray:
         m = self.motion
         u = motion_progress(t, m.timing)
+        if not m.speed or not any((m.zoom, m.rotation_deg, m.pan_x, m.pan_y,
+                                   m.star_zoom_extra * m.parallax, m.star_rotation_deg * m.parallax)):
+            u = 0.0
         foreground = m.parallax if stars else 0.0
-        zoom = 1 + (m.zoom + m.star_zoom_extra * foreground) * u * m.speed
+        zoom = 1 + (m.zoom + m.star_zoom_extra * foreground) * m.speed
+        scale = self.base_scale + (self.crop_scale * zoom - self.base_scale) * u
         angle = (m.rotation_deg + m.star_rotation_deg * foreground) * u * m.speed
-        mat = cv2.getRotationMatrix2D(self.center, angle, self.base_scale * zoom)
+        cx = (self.w - 1) / 2 + (self.center[0] - (self.w - 1) / 2) * u
+        cy = (self.h - 1) / 2 + (self.center[1] - (self.h - 1) / 2) * u
+        mat = cv2.getRotationMatrix2D((cx, cy), angle, scale)
         ow, oh = self.size
-        cx, cy = self.center
-        mat[0, 2] += ow / 2 - cx + m.pan_x * ow * (u - .5) * m.speed * (1 + .65 * foreground)
-        mat[1, 2] += oh / 2 - cy + m.pan_y * oh * (u - .5) * m.speed * (1 + .65 * foreground)
+        mat[0, 2] += (ow - 1) / 2 - cx + m.pan_x * ow * u * m.speed * (1 + .65 * foreground)
+        mat[1, 2] += (oh - 1) / 2 - cy + m.pan_y * oh * u * m.speed * (1 + .65 * foreground)
         return mat
 
     def warp(self, image: FloatImage, matrix: np.ndarray) -> FloatImage:
-        # No mirrored or repeated stars. Geometry guarantees all samples are inside.
+        # Uncovered areas stay black while approaching the crop; never repeat stars.
         return cv2.warpAffine(image, matrix, self.size, flags=cv2.INTER_LINEAR,
                               borderMode=cv2.BORDER_CONSTANT, borderValue=0)
 
