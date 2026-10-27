@@ -42,6 +42,30 @@ def environment(tmp_path):
     return image, output, settings_path, paths
 
 
+def test_saved_caption_defaults_upgrade_in_defaults_history_and_profiles(environment):
+    _, _, path, paths = environment
+    legacy = {'title_size': 36, 'subtitle_size': 22, 'x': .067, 'y': .8125,
+              'opacity': .5, 'title': 'Orion'}
+    custom = {'title_size': 96, 'subtitle_size': 54, 'x': .1, 'y': .15}
+    settings = {'version': 1, 'paths': paths, 'defaults': {'caption': legacy},
+                'history': [{'defaults': {'caption': legacy}, 'image': 'M42.jpg', 'saved_at': '2026-10-27',
+                             'exact_defaults': {'caption': legacy, 'profile_seed': 42}}],
+                'favorites': {'Old default': {'defaults': {'caption': legacy}, 'music': 'random'},
+                              'Custom': {'defaults': {'caption': custom}, 'music': 'unchanged'}}}
+    wizard.save_settings(path, settings)
+    saved = path.read_bytes()
+    loaded = wizard.load_settings(path)
+    upgraded = {**legacy, 'title_size': 84, 'subtitle_size': 42, 'x': .06, 'y': .06}
+    assert loaded['defaults']['caption'] == upgraded
+    assert loaded['history'][0]['defaults']['caption'] == upgraded
+    assert loaded['history'][0]['exact_defaults'] == {'caption': upgraded, 'profile_seed': 42}
+    assert loaded['favorites']['Old default']['defaults']['caption'] == upgraded
+    assert loaded['favorites']['Custom']['defaults']['caption'] == custom
+    assert path.read_bytes() == saved
+    wizard.save_settings(path, loaded)
+    assert wizard.load_settings(path) == loaded
+
+
 def test_first_setup_and_next_image_reuse_defaults_without_reusing_caption(monkeypatch, environment):
     image, output, settings_path, paths = environment
     # First run: initialize paths, change video settings, supply a caption.

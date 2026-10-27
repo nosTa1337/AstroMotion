@@ -127,6 +127,8 @@ Append these options to your launch command:
 
 Without these options, text overlays remain disabled in the recommended setup.
 
+Captions appear **at the top center** and smoothly fade in and out. The title defaults to **84 px**, the subtitle to **42 px**, measured at a 1080-pixel short edge: previews scale them down, 4K scales them up, and long lines shrink to fit. Change sizes in the wizard's optional menu or with `caption.title_size` / `caption.subtitle_size`. The wizard upgrades the former default sizes and position in saved settings and profiles; custom values remain available.
+
 ### Star-flight profiles
 
 All three profiles start with **30 seconds, vertical 1080p, 30 FPS, individual photo-derived stars, a perfect loop and ambient music**. They keep natural colors and add no visual effects.

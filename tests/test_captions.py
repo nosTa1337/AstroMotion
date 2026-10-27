@@ -29,6 +29,23 @@ def test_unicode_caption_and_long_line_fit_frame():
     assert overlay.y + overlay.alpha.shape[0] <= 720
 
 
+@pytest.mark.parametrize('size', [(360, 640), (720, 1280), (1080, 1920), (1920, 1080), (2160, 3840)])
+def test_default_caption_is_large_and_each_line_is_top_centered(size):
+    cfg = Caption(enabled=True, title='Orionnebel', subtitle='M42')
+    overlay = CaptionOverlay(cfg, size)
+    assert cfg.title_size == 84 and cfg.subtitle_size == 42
+    assert overlay.y == round(size[1] * .06)
+    mask = overlay.alpha[..., 0] > 0
+    rows = np.flatnonzero(mask.any(axis=1))
+    lines = np.split(rows, np.flatnonzero(np.diff(rows) > 1) + 1)
+    assert len(lines) == 2
+    for line, minimum_height in zip(lines, (50, 25)):
+        columns = np.flatnonzero(mask[line].any(axis=0))
+        center = overlay.x + (columns[0] + columns[-1]) / 2
+        assert abs(center - size[0] / 2) <= max(3, min(size) / 1080 * 3)
+        assert len(line) >= round(minimum_height * min(size) / 1080)
+
+
 def test_missing_explicit_font_fails_clearly():
     with pytest.raises(ValueError, match="Schriftfont"):
         CaptionOverlay(Caption(enabled=True, title="Nebel", font="missing_nonexistent.ttf"), (720, 1280))
