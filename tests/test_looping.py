@@ -51,14 +51,15 @@ def test_periodic_star_projection_shutter_and_forward_velocity(cycles):
     np.testing.assert_allclose(dz, (stars.cfg.far - stars.cfg.near) * (1 - cycles * eps), atol=2e-6)
 
 
-def test_periodic_camera_and_twinkle_cover_source_without_borders():
+def test_periodic_camera_and_twinkle_return_to_full_photo():
     white = np.ones((331, 477, 3), np.float32)
     animator = Animator(Layers(white, white, "screen", {}), (320, 180),
         Motion(zoom=.5, rotation_deg=10, pan_x=.15, pan_y=-.15, parallax=3, speed=3))
     assert camera_phase(0) == camera_phase(1) == 0
     assert camera_phase(.5) == 1
     for phase in np.linspace(0, 1, 41):
-        assert animator.warp(white, animator.matrix(camera_phase(float(phase)))).min() > .9999
+        assert np.isfinite(animator.warp(white, animator.matrix(camera_phase(float(phase))))).all()
+    assert animator.warp(white, animator.matrix(camera_phase(.5))).min() > .9999
     for endpoint in [0., 1.]:
         bg, st = animator.frame_layers(camera_phase(endpoint), 2 * np.pi * endpoint / 1.4, .5)
         if endpoint == 0:
@@ -85,24 +86,56 @@ def test_camera_rotation_starts_at_original_orientation_and_reaches_target(timin
         initial = camera.matrix(0, foreground)[:, :2]
         np.testing.assert_allclose(initial, np.eye(2) * camera.base_scale, atol=1e-12)
         # Non-loop playback starts upright and ends at the requested angle.
-        assert_angle(.5, foreground, target / 2)
         assert_angle(1, foreground, target)
-        # A loop approaches the target, then returns to the original angle.
-        for phase, fraction in ((0, 0), (.25, .5), (.5, 1), (.75, .5), (1, 0)):
+        # Intermediate rotation may wait for zoom, but the loop retraces each pose.
+        np.testing.assert_allclose(camera.matrix(camera_phase(.25, timing), foreground),
+                                   camera.matrix(camera_phase(.75, timing), foreground), atol=1e-12)
+        for phase, fraction in ((0, 0), (.5, 1), (1, 0)):
             assert_angle(camera_phase(phase, timing), foreground, target * fraction)
 
 
 @pytest.mark.parametrize('timing', ['smooth', 'steady'])
+@pytest.mark.parametrize('size', [(160, 120), (320, 240), (90, 160), (160, 90), (120, 120)])
+@pytest.mark.parametrize('rotation,zoom,center', [(40, .14, (.5, .5)),
+                                               (-360, 0, (.1, .9)),
+                                               (360, 1, (.9, .1))])
+def test_zoom_releases_motion_only_when_no_new_borders_can_appear(timing, size, rotation, zoom, center):
+    white = np.ones((120, 160, 3), np.float32)
+    camera = Animator(Layers(white, white, 'screen', {}), size,
+                      Motion(timing=timing, zoom=zoom, rotation_deg=rotation,
+                             pan_x=.15, pan_y=-.15, parallax=3, speed=3,
+                             center_x=center[0], center_y=center[1], overscan=1))
+    ow, oh = size
+    fill = max((ow - 1) / 159, (oh - 1) / 119)
+    for phase in np.linspace(0, 1, 81):
+        t = camera_phase(float(phase), timing)
+        for foreground in (False, True):
+            matrix = camera.matrix(t, foreground)
+            scale = np.linalg.norm(matrix[:, 0])
+            frame = camera.warp(white, matrix)
+            if scale < fill:
+                # Before format bars close, only centered zoom is allowed.
+                expected = [[scale, 0, (ow - 1 - 159 * scale) / 2],
+                            [0, scale, (oh - 1 - 119 * scale) / 2]]
+                np.testing.assert_allclose(matrix, expected, atol=1e-10)
+            else:
+                assert frame.min() > .9999, (phase, foreground, size)
+    np.testing.assert_allclose(camera.matrix(0), camera.matrix(camera_phase(1, timing)), atol=1e-12)
+
+
+@pytest.mark.parametrize('timing', ['smooth', 'steady'])
 @pytest.mark.parametrize('rotation', [-25, 25])
-def test_crop_covers_entire_rotation_from_zero_without_animated_zoom(timing, rotation):
+def test_camera_approaches_safe_crop_without_configured_zoom(timing, rotation):
     white = np.ones((331, 477, 3), np.float32)
     camera = Animator(Layers(white, white, 'screen', {}), (180, 320),
                       Motion(timing=timing, rotation_deg=rotation, star_rotation_deg=0,
                              zoom=0, star_zoom_extra=0, pan_x=0, pan_y=0, parallax=0,
                              speed=1, overscan=1))
-    for t in np.linspace(0, 1, 21):
-        assert camera.warp(white, camera.matrix(float(t))).min() > .9999
-        assert camera.warp(white, camera.matrix(camera_phase(float(t), timing))).min() > .9999
+    scales = [np.linalg.norm(camera.matrix(float(t))[:, 0]) for t in np.linspace(0, 1, 21)]
+    assert scales[0] == pytest.approx(180 / 477)
+    assert np.all(np.diff(scales) > 0)
+    assert camera.warp(white, camera.matrix(1)).min() > .9999
+    assert camera.warp(white, camera.matrix(camera_phase(.5, timing))).min() > .9999
 
 
 def test_steady_camera_has_even_travel_and_closed_smooth_reversals():
@@ -136,14 +169,14 @@ def test_large_rotation_crops_safely_and_camera_loop_closes(timing, rotation, zo
                       Motion(timing=timing, zoom=zoom, rotation_deg=rotation, star_rotation_deg=5,
                              parallax=3, speed=3, center_x=.1, center_y=.9,
                              pan_x=.15, pan_y=-.15, overscan=1))
-    for phase in np.linspace(0, 1, 21):
-        for foreground in (False, True):
-            assert camera.warp(white, camera.matrix(camera_phase(float(phase), timing), foreground)).min() > .9999
+    for foreground in (False, True):
+        assert camera.warp(white, camera.matrix(camera_phase(.5, timing), foreground)).min() > .9999
     np.testing.assert_allclose(camera.matrix(camera_phase(0, timing)), camera.matrix(camera_phase(1, timing)), atol=1e-12)
-    # Safety comes from the base crop, even with no animated zoom.
+    # Rotation coverage affects the destination, never the initial framing.
     unrotated = Animator(Layers(white, white, 'screen', {}), (180, 320),
                          replace(camera.motion, rotation_deg=0, star_rotation_deg=0))
-    assert camera.base_scale > unrotated.base_scale
+    np.testing.assert_array_equal(camera.matrix(0), unrotated.matrix(0))
+    assert camera.crop_scale > unrotated.crop_scale
 
 
 def test_steady_nonloop_camera_and_star_depth_move_without_easing(capsys):
