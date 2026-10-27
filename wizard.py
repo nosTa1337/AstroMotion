@@ -163,6 +163,17 @@ def load_settings(path: Path) -> dict:
                 or entry.get('music') not in ('random', 'exact', 'unchanged')
                 for name, entry in favorites.items()):
             raise ValueError(_t('Invalid saved profiles'))
+        # Older wizard drafts stored the former defaults as explicit overrides.
+        defaults = [data.get('defaults', {}), *(entry['defaults'] for entry in favorites.values())]
+        for entry in history:
+            defaults.extend((entry['defaults'], entry.get('exact_defaults', {})))
+        for values in defaults:
+            caption = values.get('caption', {})
+            if isinstance(caption, dict):
+                for key, old, new in (('title_size', 36, 84), ('subtitle_size', 22, 42),
+                                      ('x', .067, .06), ('y', .8125, .06)):
+                    if caption.get(key) == old:
+                        caption[key] = new
         return data
     except (ValueError, OSError) as exc:
         raise ValueError(_t('Cannot read settings: {error}. Run --setup to configure them again.', error=exc)) from exc

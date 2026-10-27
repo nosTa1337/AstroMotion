@@ -114,10 +114,10 @@ class Caption:
     title: str = ""
     subtitle: str = ""
     font: str | None = None
-    title_size: int = 36  # pixels at 1080-pixel short edge
-    subtitle_size: int = 22
-    x: float = .067
-    y: float = .8125
+    title_size: int = 84  # pixels at 1080-pixel short edge
+    subtitle_size: int = 42
+    x: float = .06  # left inset; lines are centered within the available width
+    y: float = .06
     opacity: float = .76
     start_seconds: float = 2.0
     fade_seconds: float = .9

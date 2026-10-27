@@ -1,4 +1,4 @@
-"""Small, fixed screen-space captions with smooth fades; no per-frame font work."""
+"""Centered screen-space captions with smooth fades; no per-frame font work."""
 from __future__ import annotations
 
 import math
@@ -49,9 +49,10 @@ class CaptionOverlay:
         draw = ImageDraw.Draw(texture)
         top = 0
         for text, font, bounds in rendered:
+            left = (usable_width - (bounds[2] - bounds[0])) // 2 - bounds[0]
             baseline = top - bounds[1]
-            draw.text((1, baseline + 1), text, font=font, fill=(0, 0, 0, 90))
-            draw.text((0, baseline), text, font=font, fill=(240, 241, 244, 255))
+            draw.text((left + 1, baseline + 1), text, font=font, fill=(0, 0, 0, 90))
+            draw.text((left, baseline), text, font=font, fill=(240, 241, 244, 255))
             top += bounds[3] - bounds[1] + gap
         rgba = np.asarray(texture, np.float32) / 255
         self.rgb, self.alpha = rgba[..., :3], rgba[..., 3:]

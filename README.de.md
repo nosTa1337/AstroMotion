@@ -127,6 +127,8 @@ Die folgenden Optionen an den Startbefehl anhängen:
 
 Ohne diese Optionen bleibt die Texteinblendung im empfohlenen Setup deaktiviert.
 
+Die Beschriftung erscheint **oben zentriert** und blendet sanft ein und aus. Der Titel hat standardmäßig **84 px**, der Untertitel **42 px**, bezogen auf eine kurze Bildkante von 1080 Pixeln: Vorschauen skalieren kleiner, 4K größer; lange Zeilen werden passend verkleinert. Größen lassen sich im optionalen Wizard-Menü oder über `caption.title_size` / `caption.subtitle_size` ändern. Der Wizard aktualisiert die früheren Standardgrößen und die Standardposition auch in gespeicherten Einstellungen und Profilen; individuelle Werte bleiben erhalten.
+
 ### Sternflug-Profile
 
 Alle drei Profile beginnen mit **30 Sekunden, vertikalem 1080p, 30 FPS, individuellen Sternen aus dem Foto, Perfect Loop und Ambient-Musik**. Sie behalten natürliche Farben bei und ergänzen keine Bildeffekte.
