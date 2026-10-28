@@ -18,6 +18,16 @@
 
 Replace the path after `--input` with your own photo.
 
+## Desktop GUI
+
+On Windows, double-click **`start_gui.bat`** or drag a photo onto it. Alternatively, run `python gui.py` with the project environment activated. The Windows launcher runs setup if the environment is missing. Tkinter is included with standard Windows Python installations; Linux may need the distribution's `python3-tk` package.
+
+Select the original photo and output MP4, then adjust video, motion, stars, captions and music in the tabs. Configure **StarNet2, FFmpeg and FFprobe** under **Programme**. An optional matching StarNet2 starless image can replace a new separation run. Load built-in profiles, recent drafts or named profiles; **Als Profil speichern …** saves the current settings. The GUI shares paths and profiles in `.astromotion-wizard.json` with the guided launcher. Photo titles are not stored in profiles.
+
+**360p-Vorschau rendern** keeps duration/FPS and the selected full resolution, adding `_preview` to the filename. **Video exportieren** uses the full resolution. Resolved seeds remain in the form so preview and full export match; clear seed fields for new variations. Verified separation caches are reused. Progress and logs appear while rendering runs in the background, and existing videos require overwrite confirmation. **Abbrechen** takes effect at the next frame; a running StarNet2 separation finishes first. Closing during rendering waits for cancellation and cleanup. Finished videos open in the system player.
+
+Optional arguments: `python gui.py --settings my-settings.json --input photo.jpg`. CLI and guided launcher remain available.
+
 ## Guided launcher
 
 On Windows, double-click **`start_wizard.bat`** or drag a photo onto it. Alternatively:
