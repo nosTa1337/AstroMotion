@@ -179,6 +179,56 @@ def test_named_profile_roundtrip_preserves_current_title_and_paths(app, monkeypa
     assert not saved['favorites']['My flight']['defaults']['caption']['title']
 
 
+@pytest.mark.parametrize('confirmation', [True, False])
+def test_delete_saved_profile_requires_confirmation_and_keeps_current_form(app, monkeypatch, confirmation):
+    application, errors = app
+    monkeypatch.setattr(gui.simpledialog, 'askstring', lambda *a, **k: 'My flight')
+    application.save_profile()
+    application.vars['motion.zoom'].set('0.42')
+    before = application.settings_path.read_bytes()
+    monkeypatch.setattr(gui.messagebox, 'askyesno', lambda *a, **k: confirmation)
+    application.delete_profile()
+    assert not errors
+    assert application.vars['motion.zoom'].get() == '0.42'
+    saved = wizard.load_settings(application.settings_path)
+    assert ('My flight' not in saved['favorites']) == confirmation
+    assert ('Gespeichert: My flight' not in application.profile_values) == confirmation
+    if confirmation:
+        assert application.profile.get() == 'Aktuelle Einstellungen'
+    else:
+        assert application.settings_path.read_bytes() == before
+
+
+def test_delete_profile_write_failure_keeps_saved_profile(app, monkeypatch):
+    application, errors = app
+    monkeypatch.setattr(gui.simpledialog, 'askstring', lambda *a, **k: 'My flight')
+    application.save_profile()
+    before = application.settings_path.read_bytes()
+    monkeypatch.setattr(gui.messagebox, 'askyesno', lambda *a, **k: True)
+
+    def fail(*args):
+        raise OSError('Disk full')
+
+    monkeypatch.setattr(wizard, 'save_settings', fail)
+    application.delete_profile()
+    assert errors and 'Disk full' in errors[-1][1]
+    assert 'My flight' in application.settings['favorites']
+    assert application.profile.get() == 'Gespeichert: My flight'
+    assert application.settings_path.read_bytes() == before
+
+
+@pytest.mark.parametrize('selection', ['Sternflug: relax', 'Aktuelle Einstellungen'])
+def test_builtin_profiles_and_defaults_cannot_be_deleted(app, monkeypatch, selection):
+    application, errors = app
+    notices = []
+    monkeypatch.setattr(gui.messagebox, 'showinfo', lambda *a, **k: notices.append(a))
+    application.profile.set(selection)
+    application.delete_profile()
+    assert notices and not errors
+    assert not application.settings_path.exists()
+    assert selection in application.profile_values
+
+
 @pytest.mark.video_render
 @pytest.mark.skipif(not shutil.which('ffmpeg') or not shutil.which('ffprobe'), reason='FFmpeg unavailable')
 def test_gui_exports_verified_video_using_existing_starless(app):

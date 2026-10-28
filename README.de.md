@@ -26,6 +26,8 @@ Originalfoto und MP4-Ausgabe auswählen, dann Video, Bewegung, Sterne, Text und 
 
 **360p-Vorschau rendern** behält Länge/FPS und die gewählte volle Auflösung bei und ergänzt `_preview` im Dateinamen. **Video exportieren** nutzt die volle Auflösung. Aufgelöste Seeds bleiben im Formular, damit Vorschau und Export zusammenpassen; für neue Variationen die Seed-Felder leeren. Geprüfte Trennungs-Caches werden erneut genutzt. Fortschritt und Protokoll erscheinen während des Renderings im Hintergrund; bestehende Videos erfordern eine Überschreibbestätigung. **Abbrechen** greift beim nächsten Frame; eine laufende StarNet2-Trennung wird zuerst beendet. Beim Schließen wird der Abbruch samt Bereinigung abgewartet. Fertige Videos lassen sich im Standardplayer öffnen.
 
+Ein benanntes gespeichertes Profil auswählen und über **Löschen …** nach Bestätigung entfernen. Eingebaute Profile bleiben erhalten; die aktuellen Formulareinstellungen bleiben beim Löschen unverändert.
+
 Optionale Argumente: `python gui.py --settings meine-einstellungen.json --input foto.jpg`. Kommandozeile und geführter Launcher bleiben nutzbar.
 
 ## Geführter Start ohne lange Befehle
