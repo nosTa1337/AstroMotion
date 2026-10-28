@@ -215,6 +215,8 @@ CLI-Optionen überschreiben die Konfigurationsdatei. Relative Dateipfade innerha
 
 ## Fotos und Sterntrennung
 
+PNG-/TIFF-Transparenz wird beim Import auf Schwarz gelegt. Originaldateien bleiben unverändert, die 16-Bit-Präzision bleibt erhalten.
+
 Als Eingabe ein fertig gestrecktes RGB-Astrofoto verwenden, etwa JPG, PNG oder TIFF. AstroMotion nutzt ausschließlich **echte StarNet2-Trennung**. Ein bereits mit StarNet2 erzeugtes Starless-Bild kann die erneute Trennung ersetzen:
 
 ```powershell

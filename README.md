@@ -215,6 +215,8 @@ CLI options override the configuration file. Relative file paths inside a config
 
 ## Photos and star separation
 
+PNG/TIFF alpha transparency is flattened onto black during import. Original files stay unchanged, and 16-bit precision is preserved.
+
 Use a finished, stretched RGB astrophotograph, such as JPG, PNG or TIFF. AstroMotion uses only **genuine StarNet2 separation**. If you already have a matching StarNet2 starless image, you can reuse it:
 
 ```powershell
