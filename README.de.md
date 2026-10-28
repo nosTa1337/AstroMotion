@@ -18,6 +18,16 @@
 
 Für dein eigenes Foto den Pfad hinter `--input` ersetzen.
 
+## Desktop-Oberfläche
+
+Unter Windows **`start_gui.bat`** doppelklicken oder ein Foto darauf ziehen. Alternativ mit aktivierter Projektumgebung `python gui.py` ausführen. Der Windows-Starter richtet eine fehlende Umgebung ein. Tkinter gehört zur üblichen Windows-Python-Installation; unter Linux gegebenenfalls das Paket `python3-tk` der Distribution installieren.
+
+Originalfoto und MP4-Ausgabe auswählen, dann Video, Bewegung, Sterne, Text und Musik über die Register einstellen. Unter **Programme** die Pfade zu **StarNet2, FFmpeg und FFprobe** setzen. Optional lässt sich ein passendes StarNet2-Starless-Bild statt einer neuen Trennung auswählen. Eingebaute Profile, letzte Entwürfe oder benannte Profile laden; **Als Profil speichern …** speichert die aktuellen Einstellungen. Oberfläche und geführter Launcher teilen Pfade und Profile in `.astromotion-wizard.json`. Objekttitel werden nicht im Profil gespeichert.
+
+**360p-Vorschau rendern** behält Länge/FPS und die gewählte volle Auflösung bei und ergänzt `_preview` im Dateinamen. **Video exportieren** nutzt die volle Auflösung. Aufgelöste Seeds bleiben im Formular, damit Vorschau und Export zusammenpassen; für neue Variationen die Seed-Felder leeren. Geprüfte Trennungs-Caches werden erneut genutzt. Fortschritt und Protokoll erscheinen während des Renderings im Hintergrund; bestehende Videos erfordern eine Überschreibbestätigung. **Abbrechen** greift beim nächsten Frame; eine laufende StarNet2-Trennung wird zuerst beendet. Beim Schließen wird der Abbruch samt Bereinigung abgewartet. Fertige Videos lassen sich im Standardplayer öffnen.
+
+Optionale Argumente: `python gui.py --settings meine-einstellungen.json --input foto.jpg`. Kommandozeile und geführter Launcher bleiben nutzbar.
+
 ## Geführter Start ohne lange Befehle
 
 Unter Windows **`start_wizard.bat`** doppelklicken oder ein Bild darauf ziehen. Alternativ:
@@ -204,6 +214,8 @@ Jedes Video beginnt mit dem **vollständig sichtbaren Originalfoto**, zentriert 
 CLI-Optionen überschreiben die Konfigurationsdatei. Relative Dateipfade innerhalb einer Konfiguration beziehen sich auf deren Ordner. `--print-config` zeigt die effektiven Einstellungen, ohne zu rendern.
 
 ## Fotos und Sterntrennung
+
+PNG-/TIFF-Transparenz wird beim Import auf Schwarz gelegt. Originaldateien bleiben unverändert, die 16-Bit-Präzision bleibt erhalten.
 
 Als Eingabe ein fertig gestrecktes RGB-Astrofoto verwenden, etwa JPG, PNG oder TIFF. AstroMotion nutzt ausschließlich **echte StarNet2-Trennung**. Ein bereits mit StarNet2 erzeugtes Starless-Bild kann die erneute Trennung ersetzen:
 

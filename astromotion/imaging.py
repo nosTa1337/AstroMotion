@@ -48,14 +48,21 @@ def load_image(path: Path, max_pixels: int = 120_000_000) -> FloatImage:
             raise ValueError("Mehrseitige/animierte Bilder nicht unterstützt; ein einzelnes RGB-Bild exportieren.")
         if meta.mode in ("CMYK", "P") or (icc and path.suffix.lower() in (".jpg", ".jpeg")):
             im = ImageOps.exif_transpose(meta)
-            if "transparency" in meta.info and np.asarray(im.convert("RGBA"))[..., 3].min() < 255:
-                raise ValueError("Transparente Astrofotos werden nicht unterstützt; zuvor auf RGB reduzieren.")
+            if im.mode == "P":
+                im = im.convert("RGBA")
+            alpha = (np.asarray(im.convert("RGBA"), np.float32)[..., 3:] / 255
+                     if "transparency" in meta.info else None)
+            if im.mode == "RGBA":
+                im = im.convert("RGB")
             if icc:
                 source = ImageCms.ImageCmsProfile(io.BytesIO(icc))
                 im = ImageCms.profileToProfile(im, source, ImageCms.createProfile("sRGB"), outputMode="RGB")
             else:
                 im = im.convert("RGB")
-            return np.asarray(im).astype(np.float32) / 255.0
+            rgb = np.asarray(im).astype(np.float32) / 255.0
+            if alpha is not None:
+                rgb *= alpha
+            return rgb
     # UNCHANGED preserves 16-bit PNG/TIFF and ignores orientation (applied below).
     data = np.fromfile(path, dtype=np.uint8)  # Unicode paths also work on Windows.
     arr = cv2.imdecode(data, cv2.IMREAD_UNCHANGED)
@@ -63,11 +70,11 @@ def load_image(path: Path, max_pixels: int = 120_000_000) -> FloatImage:
         raise ValueError(f"Bild kann nicht decodiert werden: {path}")
     if arr.dtype not in (np.uint8, np.uint16):
         raise ValueError("Nur 8-/16-Bit Integer-Bilder. Lineare FITS/Float-TIFF zuvor stretchen/exportieren.")
+    alpha = None
     if arr.ndim == 2:
         arr = np.repeat(arr[..., None], 3, axis=2)
     elif arr.ndim == 3 and arr.shape[2] == 4:
-        if np.any(arr[..., 3] != np.iinfo(arr.dtype).max):
-            raise ValueError("Transparente Astrofotos werden nicht unterstützt; zuvor auf RGB reduzieren.")
+        alpha = _orient(arr[..., 3:], orientation).astype(np.float32) / np.iinfo(arr.dtype).max
         arr = arr[..., :3]
     elif arr.ndim != 3 or arr.shape[2] != 3:
         raise ValueError("Erwartet wird ein RGB- oder Graustufenbild.")
@@ -86,6 +93,8 @@ def load_image(path: Path, max_pixels: int = 120_000_000) -> FloatImage:
             name = ImageCms.getProfileDescription(profile).lower()
             if "srgb" not in name:
                 raise ValueError("16-Bit-Bild mit anderem ICC-Profil: zuerst verlustfrei nach sRGB konvertieren.")
+    if alpha is not None:
+        rgb *= alpha  # Flatten on black after color conversion, preserving 16-bit input precision.
     if min(rgb.shape[:2]) < 16:
         raise ValueError("Bild ist zu klein (mindestens 16 × 16 Pixel).")
     LOG.info("Bild %s: %dx%d, %d Bit", path.name, rgb.shape[1], rgb.shape[0], 16 if scale > 255 else 8)
