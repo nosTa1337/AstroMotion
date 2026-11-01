@@ -26,6 +26,8 @@ Select the original photo and output MP4, then adjust video, motion, stars, capt
 
 **360p-Vorschau rendern** keeps duration/FPS and the selected full resolution, adding `_preview` to the filename. **Video exportieren** uses the full resolution. Resolved seeds remain in the form so preview and full export match; clear seed fields for new variations. Verified separation caches are reused. Progress and logs appear while rendering runs in the background, and existing videos require overwrite confirmation. **Abbrechen** takes effect at the next frame; a running StarNet2 separation finishes first. Closing during rendering waits for cancellation and cleanup. Finished videos open in the system player.
 
+Select a named saved profile and click **Löschen …** to remove it after confirmation. Built-in profiles stay available; deleting a profile leaves your current form settings unchanged.
+
 Optional arguments: `python gui.py --settings my-settings.json --input photo.jpg`. CLI and guided launcher remain available.
 
 ## Guided launcher

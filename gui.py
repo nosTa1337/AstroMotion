@@ -219,6 +219,7 @@ class AstroMotionApp:
         self.profile_box.pack(side='left', fill='x', expand=True)
         ttk.Button(profiles, text='Laden', command=self.load_profile).pack(side='left', padx=8)
         ttk.Button(profiles, text='Als Profil speichern …', command=self.save_profile).pack(side='left')
+        ttk.Button(profiles, text='Löschen …', command=self.delete_profile).pack(side='left', padx=(8, 0))
         tabs = ttk.Notebook(self.editor)
         tabs.pack(fill='both', expand=True)
         for title, fields in TABS.items():
@@ -372,6 +373,29 @@ class AstroMotionApp:
             self.status.set('Profil gespeichert. Leere Seeds erzeugen weiterhin neue Variationen.')
         except (ValueError, OSError) as exc:
             messagebox.showerror('Profil nicht gespeichert', str(exc), parent=self.root)
+
+    def delete_profile(self):
+        if self.worker:
+            return
+        name = next((name for name in self.settings.get('favorites', {})
+                     if self.profile.get() == f'Gespeichert: {name}'), None)
+        if name is None:
+            messagebox.showinfo('Profil löschen', 'Bitte ein gespeichertes Profil auswählen. Eingebaute Profile bleiben erhalten.', parent=self.root)
+            return
+        if not messagebox.askyesno('Profil löschen?', f'Gespeichertes Profil „{name}“ löschen? Die aktuellen Einstellungen bleiben erhalten.', parent=self.root):
+            return
+        from copy import deepcopy
+        settings = deepcopy(self.settings)
+        del settings['favorites'][name]
+        try:
+            wizard.save_settings(self.settings_path, settings)
+        except OSError as exc:
+            messagebox.showerror('Profil nicht gelöscht', str(exc), parent=self.root)
+            return
+        self.settings = settings
+        self.profile.set('Aktuelle Einstellungen')
+        self.refresh_profiles()
+        self.status.set(f'Profil „{name}“ gelöscht. Aktuelle Einstellungen bleiben erhalten.')
 
     def start(self, preview):
         if self.worker:
