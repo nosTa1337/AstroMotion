@@ -10,6 +10,34 @@ from astromotion.config import Config, apply_profile
 from astromotion.preview import preview_config
 
 
+@pytest.mark.parametrize('format', ['vertical', 'square', 'landscape'])
+@pytest.mark.parametrize('progress', [0, .3, 1])
+def test_photo_preview_matches_renderer_camera_without_changing_inputs(format, progress):
+    import cv2
+    import numpy as np
+    from astromotion.animation import Animator
+    from astromotion.preview import photo_preview_frame
+    from astromotion.separation import Layers
+
+    y, x = np.mgrid[:120, :160].astype(np.float32)
+    image = np.stack((x / 160, y / 120, np.full_like(x, .4)), axis=2)
+    before = image.copy()
+    cfg = Config(format=format, resolution='360p')
+    cfg.motion.center_x, cfg.motion.center_y = .7, .3
+    cfg.motion.rotation_deg, cfg.motion.zoom = -40, .25
+    config_before = asdict(cfg)
+    camera = Animator(Layers(image, image, 'screen', {}), cfg.size, cfg.motion)
+    expected = camera.warp(image, camera.matrix(progress))
+    np.testing.assert_array_equal(photo_preview_frame(image, cfg, progress, cfg.size), expected)
+    size = tuple(side // 2 for side in cfg.size)
+    small = photo_preview_frame(image, cfg, progress, size)
+    assert small.shape == (size[1], size[0], 3)
+    if progress == 1:  # Safe crop has no bars; smooth gradients can be compared after resizing.
+        np.testing.assert_allclose(small, cv2.resize(expected, size), atol=5e-4)
+    np.testing.assert_array_equal(image, before)
+    assert asdict(cfg) == config_before
+
+
 @pytest.mark.parametrize('format,size', [('vertical', (360, 640)), ('square', (360, 360)), ('landscape', (640, 360))])
 @pytest.mark.parametrize('fps', [24, 30, 60])
 def test_preview_only_changes_output_size_and_keeps_loop_timing(format, size, fps):

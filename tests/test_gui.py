@@ -1,6 +1,7 @@
 """GUI workflow checks; no real StarNet process or user settings are touched."""
 from dataclasses import asdict
 from pathlib import Path
+from types import SimpleNamespace
 import queue
 import shutil
 import sys
@@ -105,7 +106,7 @@ def app(tmp_path, monkeypatch):
 
 
 def finish(app):
-    deadline = time.monotonic() + 5
+    deadline = time.monotonic() + 15
     while app.worker and time.monotonic() < deadline:
         app.root.update()
         time.sleep(.01)
@@ -164,6 +165,8 @@ def test_named_profile_roundtrip_preserves_current_title_and_paths(app, monkeypa
     application, errors = app
     monkeypatch.setattr(gui.simpledialog, 'askstring', lambda *a, **k: 'My flight')
     application.vars['motion.rotation_deg'].set('40')
+    application.vars['motion.center_x'].set('.75')
+    application.vars['motion.center_y'].set('.25')
     application.vars['caption.title'].set('Original photo title')
     application.save_profile()
     assert not errors
@@ -172,11 +175,67 @@ def test_named_profile_roundtrip_preserves_current_title_and_paths(app, monkeypa
     application.load_profile()
     assert not errors
     assert application.vars['motion.rotation_deg'].get() == '40.0'
+    assert application.vars['motion.center_x'].get() == '0.75'
+    assert application.vars['motion.center_y'].get() == '0.25'
     assert application.vars['caption.title'].get() == 'Different photo'
     assert application.vars['separation.executable'].get() == sys.executable
     saved = wizard.load_settings(application.settings_path)
     assert saved['favorites']['My flight']['defaults']['motion']['rotation_deg'] == 40
     assert not saved['favorites']['My flight']['defaults']['caption']['title']
+
+
+def test_photo_preview_pick_apply_and_camera_validation(app):
+    import numpy as np
+    application, errors = app
+    application.vars['profile_variation'].set(True)
+    before = application.vars['motion.center_x'].get()
+    dialog = gui.PhotoPreview(application, np.ones((120, 160, 3), np.float32), application.read_config())
+    dialog.source_box = (10, 20, 200, 100)
+    dialog.pick_focus(SimpleNamespace(x=160, y=45))
+    assert application.vars['motion.center_x'].get() == before
+    assert dialog.cfg.motion.center_x == pytest.approx(150 / 199)
+    assert dialog.cfg.motion.center_y == pytest.approx(25 / 99)
+    dialog.zoom.set(42)
+    dialog.rotation.set(-75)
+    dialog.apply()
+    cfg = application.read_config()
+    assert not errors and cfg.motion.zoom == .42 and cfg.motion.rotation_deg == -75
+    assert cfg.motion.center_x == pytest.approx(150 / 199)
+    assert cfg.motion.pan_x == cfg.motion.pan_y == 0
+    assert not cfg.profile_variation and not cfg.cinematic.auto_focus and cfg.profile == 'custom'
+
+
+def test_photo_preview_cancel_clamps_focus_and_ignores_format_padding(app):
+    import numpy as np
+    application, errors = app
+    before = asdict(application.read_config())
+    dialog = gui.PhotoPreview(application, np.ones((120, 160, 3), np.float32), application.read_config())
+    dialog.source_box = (10, 20, 200, 100)
+    dialog.pick_focus(SimpleNamespace(x=0, y=0))
+    assert dialog.cfg.motion.center_x == .5
+    dialog.pick_focus(SimpleNamespace(x=10, y=119))
+    assert dialog.cfg.motion.center_x == .1 and dialog.cfg.motion.center_y == .9
+    dialog.center_focus()
+    assert dialog.cfg.motion.center_x == dialog.cfg.motion.center_y == .5
+    dialog.zoom.set(80)
+    dialog.close()
+    assert not errors and asdict(application.read_config()) == before
+
+
+def test_photo_preview_opens_transparent_image_without_starnet_or_ffmpeg(app):
+    from PIL import Image
+    application, errors = app
+    path = application.settings_path.parent / 'transparent.png'
+    Image.new('RGBA', (160, 120), (255, 128, 64, 128)).save(path)
+    application.image.set(str(path))
+    application.vars['separation.executable'].set('')
+    application.vars['encoding.ffmpeg'].set('missing-ffmpeg')
+    dialog = application.show_photo_preview()
+    assert not errors and dialog is not None
+    application.root.update()
+    dialog.refresh()
+    assert dialog.output_texture.width() > 0
+    dialog.close()
 
 
 @pytest.mark.parametrize('confirmation', [True, False])

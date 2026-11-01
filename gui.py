@@ -29,6 +29,8 @@ TABS = {
                  ('motion.rotation_deg', 'Hintergrunddrehung (Grad)', None),
                  ('motion.timing', 'Verlauf (steady = gleichmäßig)', CAMERA_TIMINGS),
                  ('motion.speed', 'Geschwindigkeit', None),
+                 ('motion.center_x', 'Zoomziel X (0.1 bis 0.9)', None),
+                 ('motion.center_y', 'Zoomziel Y (0.1 bis 0.9)', None),
                  ('motion.pan_x', 'Kameraversatz X', None), ('motion.pan_y', 'Kameraversatz Y', None)],
     'Sterne': [('starfield.enabled', 'Einzelner Sternflug', None),
                ('starfield.count', 'Maximale Sternanzahl', None),
@@ -165,6 +167,133 @@ class RenderTask:
             handler.close()
 
 
+class PhotoPreview:
+    def __init__(self, parent, image, cfg):
+        from PIL import Image
+
+        self.parent, self.image, self.cfg = parent, image, cfg
+        # A manually chosen camera must not be changed by later random variation.
+        cfg.profile, cfg.profile_variation, cfg.cinematic.auto_focus = 'custom', False, False
+        self.photo = Image.fromarray((image.clip(0, 1) * 255).round().astype('uint8'))
+        self.window = tk.Toplevel(parent.root)
+        self.window.title('AstroMotion · Bildvorschau und Zoomziel')
+        self.window.transient(parent.root)
+        self.window.protocol('WM_DELETE_WINDOW', self.close)
+        x = max(0, min(parent.root.winfo_rootx() + (parent.root.winfo_width() - 960) // 2,
+                       self.window.winfo_screenwidth() - 976))
+        y = max(0, min(parent.root.winfo_rooty() + (parent.root.winfo_height() - 650) // 2,
+                       self.window.winfo_screenheight() - 698))
+        self.window.geometry(f'960x650+{x}+{y}')
+        self.window.minsize(780, 600)
+        self.window.grab_set()
+        self.pending = None
+        self.zoom = tk.DoubleVar(value=cfg.motion.zoom * 100)
+        self.rotation = tk.DoubleVar(value=cfg.motion.rotation_deg)
+        self.position = tk.DoubleVar(value=1)
+        self.summary = tk.StringVar()
+        body = ttk.Frame(self.window, padding=12)
+        body.pack(fill='both', expand=True)
+        body.columnconfigure(0, weight=1)
+        body.columnconfigure(1, weight=1)
+        body.rowconfigure(1, weight=1)
+        ttk.Label(body, text='Originalfoto · Klick setzt das Zoomziel').grid(row=0, column=0, sticky='w')
+        ttk.Label(body, text='Kamera-Ausschnitt im gewählten Videoformat').grid(row=0, column=1, sticky='w')
+        self.source = tk.Canvas(body, background='#222222', highlightthickness=0, width=440, height=350)
+        self.output = tk.Canvas(body, background='#222222', highlightthickness=0, width=440, height=350)
+        self.source.grid(row=1, column=0, sticky='nsew', padx=(0, 6), pady=8)
+        self.output.grid(row=1, column=1, sticky='nsew', padx=(6, 0), pady=8)
+        self.source.bind('<Button-1>', self.pick_focus)
+        self.source.bind('<Configure>', self.schedule)
+        self.output.bind('<Configure>', self.schedule)
+        controls = ttk.Frame(body)
+        controls.grid(row=2, column=0, columnspan=2, sticky='ew')
+        controls.columnconfigure(1, weight=1)
+        for row, (label, variable, low, high) in enumerate([
+                ('Zusatzzoom (%)', self.zoom, 0, 100), ('Drehung (Grad)', self.rotation, -360, 360),
+                ('Kamerafahrt: Start → Zoomziel', self.position, 0, 1)]):
+            ttk.Label(controls, text=label).grid(row=row, column=0, sticky='w', padx=(0, 12), pady=6)
+            ttk.Scale(controls, variable=variable, from_=low, to=high, command=self.schedule).grid(row=row, column=1, sticky='ew')
+        ttk.Label(body, textvariable=self.summary).grid(row=3, column=0, columnspan=2, sticky='w', pady=4)
+        ttk.Label(body, text='Automatischer Randbeschnitt zählt zusätzlich zum Zoom. Ein Loop fährt danach zum Start zurück.').grid(row=4, column=0, columnspan=2, sticky='w')
+        ttk.Label(body, text='Foto-Vorschau der Kamera; Sternflug, Text und Musik siehst du in der gerenderten Video-Vorschau.').grid(row=5, column=0, columnspan=2, sticky='w', pady=(0, 8))
+        buttons = ttk.Frame(body)
+        buttons.grid(row=6, column=0, columnspan=2, sticky='ew')
+        ttk.Button(buttons, text='Ziel mittig', command=self.center_focus).pack(side='left')
+        ttk.Button(buttons, text='Übernehmen', command=self.apply).pack(side='right')
+        ttk.Button(buttons, text='Verwerfen', command=self.close).pack(side='right', padx=8)
+        self.source_box = None
+        self.schedule()
+
+    @staticmethod
+    def fit_box(canvas, size):
+        width, height = max(1, canvas.winfo_width()), max(1, canvas.winfo_height())
+        scale = min(width / size[0], height / size[1])
+        w, h = max(1, round(size[0] * scale)), max(1, round(size[1] * scale))
+        return (width - w) // 2, (height - h) // 2, w, h
+
+    def schedule(self, *_):
+        if self.pending is None:
+            self.pending = self.window.after(40, self.refresh)
+
+    def refresh(self):
+        from PIL import Image, ImageTk
+        from astromotion.preview import photo_preview_frame
+
+        if self.pending is not None:
+            self.window.after_cancel(self.pending)
+            self.pending = None
+        self.cfg.motion.zoom = round(self.zoom.get(), 2) / 100
+        self.cfg.motion.rotation_deg = round(self.rotation.get(), 2)
+        x, y, w, h = self.fit_box(self.source, self.photo.size)
+        self.source_box = x, y, w, h
+        self.source_texture = ImageTk.PhotoImage(self.photo.resize((w, h), Image.Resampling.LANCZOS), master=self.window)
+        self.source.delete('all')
+        self.source.create_image(x, y, anchor='nw', image=self.source_texture)
+        fx = x + self.cfg.motion.center_x * (w - 1)
+        fy = y + self.cfg.motion.center_y * (h - 1)
+        self.source.create_oval(fx - 8, fy - 8, fx + 8, fy + 8, outline='#ffd166', width=2)
+        self.source.create_line(fx - 13, fy, fx + 13, fy, fill='#ffd166')
+        self.source.create_line(fx, fy - 13, fx, fy + 13, fill='#ffd166')
+        x, y, w, h = self.fit_box(self.output, self.cfg.size)
+        frame = photo_preview_frame(self.image, self.cfg, self.position.get(), (w, h))
+        self.output_texture = ImageTk.PhotoImage(Image.fromarray((frame.clip(0, 1) * 255).round().astype('uint8')), master=self.window)
+        self.output.delete('all')
+        self.output.create_image(x, y, anchor='nw', image=self.output_texture)
+        self.summary.set(f'Zoom +{self.cfg.motion.zoom:.1%} · Drehung {self.cfg.motion.rotation_deg:g}° · '
+                         f'Ziel X {self.cfg.motion.center_x:.2f} / Y {self.cfg.motion.center_y:.2f} · Fahrt {self.position.get():.0%}')
+
+    def pick_focus(self, event):
+        if not self.source_box:
+            return
+        x, y, w, h = self.source_box
+        if not (x <= event.x < x + w and y <= event.y < y + h):
+            return
+        self.cfg.motion.center_x = min(.9, max(.1, (event.x - x) / max(1, w - 1)))
+        self.cfg.motion.center_y = min(.9, max(.1, (event.y - y) / max(1, h - 1)))
+        self.cfg.motion.pan_x = self.cfg.motion.pan_y = 0
+        self.schedule()
+
+    def center_focus(self):
+        self.cfg.motion.center_x = self.cfg.motion.center_y = .5
+        self.cfg.motion.pan_x = self.cfg.motion.pan_y = 0
+        self.schedule()
+
+    def apply(self):
+        # Read pending slider changes before copying the camera back to the form.
+        self.cfg.motion.zoom = round(self.zoom.get(), 2) / 100
+        self.cfg.motion.rotation_deg = round(self.rotation.get(), 2)
+        self.cfg.validate()
+        self.parent.fill(self.cfg)
+        self.parent.profile.set('Aktuelle Einstellungen')
+        self.parent.status.set('Zoomziel und Kamerafahrt übernommen. Zufällige Kameraänderungen sind ausgeschaltet.')
+        self.close()
+
+    def close(self):
+        if self.pending is not None:
+            self.window.after_cancel(self.pending)
+        self.window.destroy()
+
+
 class AstroMotionApp:
     def __init__(self, root, settings_path=wizard.SETTINGS, image=None):
         self.root, self.settings_path = root, settings_path
@@ -212,6 +341,7 @@ class AstroMotionApp:
             ttk.Entry(files, textvariable=variable).grid(row=row, column=1, sticky='ew', pady=3)
             ttk.Button(files, text='Auswählen …', command=command).grid(row=row, column=2, padx=(8, 0))
         files.columnconfigure(1, weight=1)
+        ttk.Button(files, text='Bildvorschau …', command=self.show_photo_preview).grid(row=0, column=3, padx=(8, 0))
         profiles = ttk.Frame(self.editor, padding=(0, 10))
         profiles.pack(fill='x')
         ttk.Label(profiles, text='Profil').pack(side='left', padx=(0, 10))
@@ -278,6 +408,20 @@ class AstroMotionApp:
                                           filetypes=[('Astrofotos', '*.jpg *.jpeg *.png *.tif *.tiff')])
         if path:
             self.set_image(Path(path))
+
+    def show_photo_preview(self):
+        if self.worker:
+            return
+        try:
+            from astromotion.imaging import load_image, resize_work
+            cfg = self.read_config()
+            if not self.image.get().strip():
+                raise ValueError('Bitte zuerst ein Originalfoto auswählen.')
+            image = load_image(Path(self.image.get()).expanduser().resolve(), cfg.max_input_pixels)
+            image = resize_work(image, cfg.work_long_edge)
+            return PhotoPreview(self, image, cfg)
+        except (ValueError, OSError) as exc:
+            messagebox.showerror('Bildvorschau nicht geöffnet', str(exc), parent=self.root)
 
     def set_image(self, image):
         self.image.set(str(image))
